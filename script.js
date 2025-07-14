@@ -19,7 +19,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Animation on scroll
     const animateOnScroll = () => {
-        const elements = document.querySelectorAll('.feature-card, .step, .testimonial-card, .pricing-card');
+        const elements = document.querySelectorAll('.feature-card, .category-card, .progress-item, .community-item, .pricing-card');
         
         elements.forEach(element => {
             const elementPosition = element.getBoundingClientRect().top;
@@ -35,7 +35,7 @@ document.addEventListener('DOMContentLoaded', function() {
     };
 
     // Set initial styles for animation
-    document.querySelectorAll('.feature-card, .step, .testimonial-card, .pricing-card').forEach(element => {
+    document.querySelectorAll('.feature-card, .category-card, .progress-item, .community-item, .pricing-card').forEach(element => {
         element.style.opacity = '0';
         element.style.transform = element.classList.contains('pricing-card featured')
             ? 'scale(1.05) translateY(20px)'
@@ -50,6 +50,10 @@ document.addEventListener('DOMContentLoaded', function() {
     // Mobile menu toggle
     const createMobileMenu = () => {
         const nav = document.querySelector('nav');
+        
+        // Only create if it doesn't exist yet
+        if (document.querySelector('.mobile-menu-btn')) return;
+        
         const mobileMenuBtn = document.createElement('div');
         mobileMenuBtn.className = 'mobile-menu-btn';
         mobileMenuBtn.innerHTML = `
@@ -62,12 +66,12 @@ document.addEventListener('DOMContentLoaded', function() {
         mobileMenu.className = 'mobile-menu';
         
         // Clone nav links
-        const navLinks = document.querySelector('.nav-links').cloneNode(true);
-        mobileMenu.appendChild(navLinks);
+        const navLinksClone = document.querySelector('.nav-links').cloneNode(true);
+        mobileMenu.appendChild(navLinksClone);
         
-        // Add CTA button
-        const ctaButton = document.querySelector('.cta-button').cloneNode(true);
-        mobileMenu.appendChild(ctaButton);
+        // Clone CTA button
+        const ctaButtonClone = document.querySelector('.cta-button').cloneNode(true);
+        mobileMenu.appendChild(ctaButtonClone);
         
         // Add to DOM
         nav.appendChild(mobileMenuBtn);
@@ -99,4 +103,25 @@ document.addEventListener('DOMContentLoaded', function() {
             createMobileMenu();
         }
     });
+
+    // Form submission
+    const signupForm = document.querySelector('.signup-form');
+    if (signupForm) {
+        signupForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // Get form data
+            const name = this.querySelector('input[type="text"]').value;
+            const email = this.querySelector('input[type="email"]').value;
+            
+            // Show success message
+            this.innerHTML = `
+                <div class="signup-success">
+                    <div class="success-icon">✓</div>
+                    <h3>Thanks for signing up, ${name}!</h3>
+                    <p>We've sent a confirmation email to ${email}. Please check your inbox to complete your registration.</p>
+                </div>
+            `;
+        });
+    }
 });
