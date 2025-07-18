@@ -22,6 +22,12 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import LightningAvatar from '@/components/LightningAvatar';
 import { supabase } from '@/lib/supabase';
+import {
+  feetInchesToCm,
+  poundsToKg,
+  formatHeight,
+  formatWeight,
+} from '@/lib/unitConversions';
 
 interface ProfileData {
   username: string;
@@ -31,6 +37,14 @@ interface ProfileData {
   experienceLevel: string;
   workoutFrequency: string;
   equipment: string[];
+  workoutDuration: string;
+  preferredUnits: 'metric' | 'imperial';
+  gender: string;
+  heightFeet: number;
+  heightInches: number;
+  heightCm: number;
+  weightPounds: number;
+  weightKg: number;
 }
 
 const avatarColors = [
@@ -74,6 +88,26 @@ const equipmentOptions = [
   { id: 'gym-access', label: 'Full Gym Access', description: 'All equipment' },
 ];
 
+const workoutDurationOptions = [
+  { id: '15-20', label: '15-20 minutes', description: 'Quick and efficient' },
+  { id: '20-30', label: '20-30 minutes', description: 'Moderate length' },
+  { id: '30-45', label: '30-45 minutes', description: 'Standard workout' },
+  { id: '45-60', label: '45-60 minutes', description: 'Extended session' },
+  { id: '60+', label: '60+ minutes', description: 'Long workout' },
+];
+
+const unitOptions = [
+  { id: 'imperial', label: 'Imperial', description: 'Feet/inches & pounds' },
+  { id: 'metric', label: 'Metric', description: 'Centimeters & kilograms' },
+];
+
+const genderOptions = [
+  { id: 'male', label: 'Male' },
+  { id: 'female', label: 'Female' },
+  { id: 'other', label: 'Other' },
+  { id: 'prefer-not-to-say', label: 'Prefer not to say' },
+];
+
 export default function EditProfileScreen() {
   const router = useRouter();
   const { profile, updateProfile, user, loadOnboardingData } = useAuth();
@@ -86,6 +120,14 @@ export default function EditProfileScreen() {
     experienceLevel: '',
     workoutFrequency: '',
     equipment: [],
+    workoutDuration: '',
+    preferredUnits: 'imperial',
+    gender: '',
+    heightFeet: 0,
+    heightInches: 0,
+    heightCm: 0,
+    weightPounds: 0,
+    weightKg: 0,
   });
 
   const [loading, setLoading] = useState(false);
@@ -107,6 +149,14 @@ export default function EditProfileScreen() {
         experienceLevel: onboardingData.data?.experience_level || '',
         workoutFrequency: onboardingData.data?.workout_frequency || '',
         equipment: onboardingData.data?.equipment || [],
+        workoutDuration: onboardingData.data?.workout_duration || '',
+        preferredUnits: onboardingData.data?.preferred_units || 'imperial',
+        gender: onboardingData.data?.gender || '',
+        heightFeet: onboardingData.data?.height_feet || 0,
+        heightInches: onboardingData.data?.height_inches || 0,
+        heightCm: onboardingData.data?.height_cm || 0,
+        weightPounds: onboardingData.data?.weight_pounds || 0,
+        weightKg: onboardingData.data?.weight_kg || 0,
       });
     }
   };
@@ -129,16 +179,54 @@ export default function EditProfileScreen() {
 
       // Update onboarding data using UPSERT to replace existing data
       if (user) {
+        // Convert units if needed and prepare data for database
+        let heightData = {};
+        let weightData = {};
+
+        if (profileData.preferredUnits === 'metric') {
+          heightData = {
+            height_cm: profileData.heightCm,
+            height_feet: null,
+            height_inches: null,
+          };
+          weightData = {
+            weight_kg: profileData.weightKg,
+            weight_pounds: null,
+          };
+        } else {
+          // Convert imperial to metric for storage
+          const heightCm = feetInchesToCm(
+            profileData.heightFeet,
+            profileData.heightInches
+          );
+          const weightKg = poundsToKg(profileData.weightPounds);
+
+          heightData = {
+            height_feet: profileData.heightFeet,
+            height_inches: profileData.heightInches,
+            height_cm: heightCm,
+          };
+          weightData = {
+            weight_pounds: profileData.weightPounds,
+            weight_kg: weightKg,
+          };
+        }
+
         const { error: onboardingError } = await supabase
           .from('onboarding_data')
           .upsert(
             {
               user_id: user.id,
+              gender: profileData.gender,
+              preferred_units: profileData.preferredUnits,
+              ...heightData,
+              ...weightData,
               fitness_goals: profileData.fitnessGoals,
               experience_level: profileData.experienceLevel,
               workout_frequency: profileData.workoutFrequency,
               equipment: profileData.equipment,
               time_availability: 'flexible',
+              workout_duration: profileData.workoutDuration,
               limitations: [],
               motivation_style: [],
               workout_style: [],
@@ -301,6 +389,111 @@ export default function EditProfileScreen() {
                   )}
                 </TouchableOpacity>
               ))}
+            </View>
+          )}
+
+          {/* Personal Information */}
+          {renderSection(
+            'Personal Information',
+            <View style={styles.personalSection}>
+              {/* Unit Preferences */}
+              <View style={styles.subsection}>
+                <Text style={styles.subsectionTitle}>Preferred Units</Text>
+                {unitOptions.map((unit) => (
+                  <TouchableOpacity
+                    key={unit.id}
+                    style={[
+                      styles.unitOption,
+                      profileData.preferredUnits === unit.id &&
+                        styles.selectedUnit,
+                    ]}
+                    onPress={() => updateField('preferredUnits', unit.id)}
+                  >
+                    <View style={styles.unitContent}>
+                      <Text
+                        style={[
+                          styles.unitLabel,
+                          profileData.preferredUnits === unit.id &&
+                            styles.selectedUnitLabel,
+                        ]}
+                      >
+                        {unit.label}
+                      </Text>
+                      <Text
+                        style={[
+                          styles.unitDescription,
+                          profileData.preferredUnits === unit.id &&
+                            styles.selectedUnitDescription,
+                        ]}
+                      >
+                        {unit.description}
+                      </Text>
+                    </View>
+                    {profileData.preferredUnits === unit.id && (
+                      <CheckCircle size={20} color="#6B46C1" />
+                    )}
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              {/* Gender */}
+              <View style={styles.subsection}>
+                <Text style={styles.subsectionTitle}>Gender</Text>
+                {genderOptions.map((gender) => (
+                  <TouchableOpacity
+                    key={gender.id}
+                    style={[
+                      styles.genderOption,
+                      profileData.gender === gender.id && styles.selectedGender,
+                    ]}
+                    onPress={() => updateField('gender', gender.id)}
+                  >
+                    <Text
+                      style={[
+                        styles.genderLabel,
+                        profileData.gender === gender.id &&
+                          styles.selectedGenderLabel,
+                      ]}
+                    >
+                      {gender.label}
+                    </Text>
+                    {profileData.gender === gender.id && (
+                      <CheckCircle size={20} color="#6B46C1" />
+                    )}
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              {/* Height & Weight Display */}
+              <View style={styles.subsection}>
+                <Text style={styles.subsectionTitle}>Physical Stats</Text>
+                <View style={styles.statsContainer}>
+                  <View style={styles.statItem}>
+                    <Text style={styles.statLabel}>Height</Text>
+                    <Text style={styles.statValue}>
+                      {formatHeight(
+                        profileData.heightFeet,
+                        profileData.heightInches,
+                        profileData.heightCm,
+                        profileData.preferredUnits
+                      )}
+                    </Text>
+                  </View>
+                  <View style={styles.statItem}>
+                    <Text style={styles.statLabel}>Weight</Text>
+                    <Text style={styles.statValue}>
+                      {formatWeight(
+                        profileData.weightPounds,
+                        profileData.weightKg,
+                        profileData.preferredUnits
+                      )}
+                    </Text>
+                  </View>
+                </View>
+                <Text style={styles.statsNote}>
+                  Height and weight can be updated during onboarding
+                </Text>
+              </View>
             </View>
           )}
 
@@ -470,6 +663,48 @@ export default function EditProfileScreen() {
                   </TouchableOpacity>
                 ))}
               </View>
+            </View>
+          )}
+
+          {/* Workout Duration */}
+          {renderSection(
+            'Workout Duration',
+            <View style={styles.frequencySection}>
+              {workoutDurationOptions.map((duration) => (
+                <TouchableOpacity
+                  key={duration.id}
+                  style={[
+                    styles.frequencyOption,
+                    profileData.workoutDuration === duration.id &&
+                      styles.selectedFrequency,
+                  ]}
+                  onPress={() => updateField('workoutDuration', duration.id)}
+                >
+                  <View style={styles.frequencyContent}>
+                    <Text
+                      style={[
+                        styles.frequencyTitle,
+                        profileData.workoutDuration === duration.id &&
+                          styles.selectedFrequencyTitle,
+                      ]}
+                    >
+                      {duration.label}
+                    </Text>
+                    <Text
+                      style={[
+                        styles.frequencyDescription,
+                        profileData.workoutDuration === duration.id &&
+                          styles.selectedFrequencyDescription,
+                      ]}
+                    >
+                      {duration.description}
+                    </Text>
+                  </View>
+                  {profileData.workoutDuration === duration.id && (
+                    <CheckCircle size={20} color="#FFFFFF" />
+                  )}
+                </TouchableOpacity>
+              ))}
             </View>
           )}
         </ScrollView>
@@ -762,5 +997,99 @@ const styles = StyleSheet.create({
   },
   selectedEquipmentSubtitle: {
     color: '#E2E8F0',
+  },
+  personalSection: {
+    gap: 20,
+  },
+  subsection: {
+    gap: 12,
+  },
+  subsectionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#6B46C1',
+    marginBottom: 4,
+  },
+  unitOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#1A1A2E',
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 2,
+    borderColor: '#1A1A2E',
+  },
+  selectedUnit: {
+    backgroundColor: '#6B46C1',
+    borderColor: '#6B46C1',
+  },
+  unitContent: {
+    flex: 1,
+  },
+  unitLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
+    marginBottom: 2,
+  },
+  selectedUnitLabel: {
+    color: '#FFFFFF',
+  },
+  unitDescription: {
+    fontSize: 14,
+    color: '#94A3B8',
+  },
+  selectedUnitDescription: {
+    color: '#E2E8F0',
+  },
+  genderOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#1A1A2E',
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 2,
+    borderColor: '#1A1A2E',
+  },
+  selectedGender: {
+    backgroundColor: '#6B46C1',
+    borderColor: '#6B46C1',
+  },
+  genderLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  selectedGenderLabel: {
+    color: '#FFFFFF',
+  },
+  statsContainer: {
+    flexDirection: 'row',
+    backgroundColor: '#1A1A2E',
+    borderRadius: 12,
+    padding: 16,
+    gap: 20,
+  },
+  statItem: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  statLabel: {
+    fontSize: 14,
+    color: '#94A3B8',
+    marginBottom: 4,
+  },
+  statValue: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  statsNote: {
+    fontSize: 12,
+    color: '#64748B',
+    textAlign: 'center',
+    marginTop: 8,
+    fontStyle: 'italic',
   },
 });

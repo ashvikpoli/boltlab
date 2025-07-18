@@ -4,59 +4,70 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
+  ActivityIndicator,
 } from 'react-native';
 import { useState, useEffect } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
   Zap,
+  Flame,
+  Play,
+  RefreshCw,
   Calendar,
   Target,
-  Trophy,
-  Activity,
-  ChevronRight,
-  Star,
-  Flame,
+  Sparkles,
+  Clock,
 } from 'lucide-react-native';
-import LightningAvatar from '@/components/LightningAvatar';
-import XPProgressBar from '@/components/XPProgressBar';
-import AchievementCard from '@/components/AchievementCard';
-import LevelUpCelebration from '@/components/LevelUpCelebration';
 import { useAuth } from '@/hooks/useAuth';
 import {
   useSupabaseGamification,
   getLevelProgress,
 } from '@/hooks/useSupabaseGamification';
-import { useSupabaseWorkouts } from '@/hooks/useSupabaseWorkouts';
+import { useDailyWorkout } from '@/hooks/useDailyWorkout';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import { useCallback } from 'react';
 
+// Define weekly workout split
+const WEEKLY_SPLIT = {
+  0: ['chest', 'triceps'], // Sunday
+  1: ['back', 'biceps'], // Monday
+  2: ['legs', 'glutes'], // Tuesday
+  3: ['shoulders', 'abs'], // Wednesday
+  4: ['chest', 'triceps'], // Thursday
+  5: ['back', 'biceps'], // Friday
+  6: ['legs', 'glutes'], // Saturday
+};
+
+// Muscle group names mapping
+const MUSCLE_NAMES = {
+  chest: 'Chest',
+  back: 'Back',
+  biceps: 'Biceps',
+  triceps: 'Triceps',
+  shoulders: 'Shoulders',
+  legs: 'Legs',
+  glutes: 'Glutes',
+  abs: 'Abs',
+};
+
 export default function HomeScreen() {
   const router = useRouter();
-  const { profile, loadOnboardingData, loadProfile, user } = useAuth();
-  const [isLevelingUpState, setIsLevelingUpState] = useState(false);
-  const [onboardingData, setOnboardingData] = useState<any>(null);
-  const [isQuickWorkoutLoading, setIsQuickWorkoutLoading] = useState(false);
-  const { completeWorkout, getUnlockedAchievements } =
-    useSupabaseGamification();
-  const { getWorkoutStats } = useSupabaseWorkouts();
+  const { profile, loadProfile, user } = useAuth();
+  const { completeWorkout } = useSupabaseGamification();
+  const {
+    dailyWorkout,
+    selectedMuscleNames,
+    isGeneratingDaily,
+    loading: dailyLoading,
+    regenerateDailyWorkout,
+  } = useDailyWorkout();
 
   // Get current level progress using the new system
   const levelProgress = profile?.total_xp
     ? getLevelProgress(profile.total_xp)
     : { currentXP: 0, maxXP: 100, level: 1 };
-
-  // Load onboarding data for personalization
-  useEffect(() => {
-    const loadUserPreferences = async () => {
-      const { data } = await loadOnboardingData();
-      if (data) {
-        setOnboardingData(data);
-      }
-    };
-    loadUserPreferences();
-  }, []);
 
   // Refresh profile data when screen comes into focus (after workouts)
   useFocusEffect(
@@ -70,82 +81,39 @@ export default function HomeScreen() {
     }, [user, loadProfile])
   );
 
-  // Helper function to format fitness goals
-  const formatFitnessGoals = (goals: string[]) => {
-    const goalLabels: { [key: string]: string } = {
-      'weight-loss': 'weight loss',
-      'muscle-gain': 'muscle gain',
-      endurance: 'endurance',
-      strength: 'strength',
-    };
-
-    return goals.map((goal) => goalLabels[goal] || goal).join(' and ');
+  // Get today's split based on day of week
+  const getTodaysSplit = () => {
+    const today = new Date().getDay();
+    const todaysMuscles = WEEKLY_SPLIT[today as keyof typeof WEEKLY_SPLIT];
+    return todaysMuscles.map(
+      (muscle) => MUSCLE_NAMES[muscle as keyof typeof MUSCLE_NAMES]
+    );
   };
 
-  const workoutStats = getWorkoutStats();
-  const unlockedAchievements = getUnlockedAchievements();
+  const todaysSplit = getTodaysSplit();
 
-  const handleQuickWorkout = async () => {
-    if (isQuickWorkoutLoading) return; // Prevent multiple taps
+  // Removed handleStartWorkout function as it's no longer needed
 
-    setIsQuickWorkoutLoading(true);
-    try {
-      console.log('Starting quick workout simulation...');
-
-      // Simulate completing a quick workout with realistic data
-      const workoutDuration = 15; // 15 minutes
-      const totalSets = 6; // 3 exercises x 2 sets each
-      const exerciseIds = ['push-ups', 'squats', 'burpees']; // Simulated exercise IDs
-
-      // Save the workout to database and award XP
-      const result = await completeWorkout(
-        exerciseIds,
-        workoutDuration,
-        totalSets
-      );
-
-      console.log('Quick workout completed:', result);
-
-      // Refresh profile to show updated XP
-      if (user && loadProfile) {
-        await loadProfile(user.id);
-      }
-
-      // Show level up celebration if user leveled up
-      if (result.leveledUp) {
-        setIsLevelingUpState(true);
-      }
-    } catch (error) {
-      console.error('Error completing quick workout:', error);
-    } finally {
-      setIsQuickWorkoutLoading(false);
+  const startDailyWorkout = () => {
+    if (dailyWorkout) {
+      router.push({
+        pathname: '/workout/active',
+        params: {
+          workoutData: JSON.stringify(dailyWorkout),
+        },
+      });
     }
   };
 
-  const recentAchievements = unlockedAchievements.slice(0, 3);
-
-  const quickActions = [
-    {
-      title: isQuickWorkoutLoading
-        ? 'Starting Workout...'
-        : 'Start Quick Workout',
-      subtitle: '15 min HIIT',
-      icon: Zap,
-      action: handleQuickWorkout,
-    },
-    {
-      title: 'Track Progress',
-      subtitle: 'Log your stats',
-      icon: Target,
-      action: () => router.push('/(tabs)/progress'),
-    },
-    {
-      title: 'View Achievements',
-      subtitle: 'See your wins',
-      icon: Trophy,
-      action: () => router.push('/(tabs)/profile'),
-    },
-  ];
+  const renderLightningBolts = (count: number) => {
+    return (
+      <View style={styles.difficultyContainer}>
+        {[...Array(count)].map((_, index) => (
+          <Zap key={index} size={16} color="#F59E0B" fill="#F59E0B" />
+        ))}
+      </View>
+    );
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -155,226 +123,194 @@ export default function HomeScreen() {
       >
         {/* Header */}
         <View style={styles.header}>
-          <View style={styles.headerContent}>
+          <View style={styles.headerTop}>
             <View style={styles.headerLeft}>
-              <LightningAvatar
-                level="bolt"
-                xp={levelProgress.currentXP}
-                maxXp={levelProgress.maxXP}
-                color="purple"
-                size="medium"
-                showStats={false}
-              />
               <View style={styles.logoContainer}>
+                <Zap size={24} color="#6B46C1" />
                 <Text style={styles.logoText}>BoltLab</Text>
-                <Text style={styles.levelText}>
-                  Level {profile?.level || 1}
-                </Text>
+              </View>
+              <Text style={styles.levelText}>
+                Level {profile?.level || 1} Warrior
+              </Text>
+            </View>
+            <View style={styles.pointsContainer}>
+              <Text style={styles.pointsValue}>
+                {(profile?.total_xp || 0).toLocaleString()}
+              </Text>
+              <Text style={styles.pointsLabel}>XP</Text>
+            </View>
+          </View>
+        </View>
+
+        {/* Goals and Streak Section */}
+        <View style={styles.statsSection}>
+          <View style={styles.goalCard}>
+            <Text style={styles.goalTitle}>Today's Split</Text>
+            <View style={styles.splitContainer}>
+              <View style={styles.splitContent}>
+                {todaysSplit.map((muscle, index) => (
+                  <Text key={muscle} style={styles.splitText}>
+                    {muscle}
+                    {index < todaysSplit.length - 1 && (
+                      <Text style={styles.splitSeparator}> & </Text>
+                    )}
+                  </Text>
+                ))}
               </View>
             </View>
-            <TouchableOpacity
-              style={styles.profileButton}
-              onPress={() => router.push('/(tabs)/profile')}
-            >
-              <View style={styles.avatar}>
-                <Text style={styles.avatarText}>J</Text>
-              </View>
-            </TouchableOpacity>
+          </View>
+
+          <View style={styles.streakCard}>
+            <Text style={styles.streakTitle}>Streak</Text>
+            <View style={styles.streakContent}>
+              <Flame size={20} color="#F59E0B" />
+              <Text style={styles.streakValue}>
+                {profile?.current_streak || 0} days
+              </Text>
+            </View>
           </View>
         </View>
 
-        {/* Welcome Section */}
-        <View style={styles.welcomeSection}>
-          <Text style={styles.welcomeTitle}>
-            Welcome back, {profile?.username || 'Lightning Warrior'}!
-          </Text>
-          <Text style={styles.welcomeSubtitle}>
-            {onboardingData?.fitness_goals?.length > 0
-              ? `Ready to work on ${formatFitnessGoals(
-                  onboardingData.fitness_goals
-                )}?`
-              : 'Ready to charge up your fitness journey?'}
-          </Text>
-
-          {/* XP Progress */}
-          <View style={styles.progressContainer}>
-            <LinearGradient
-              colors={['#1A1A2E', '#0F0F23']}
-              style={styles.progressGradient}
-            >
-              <XPProgressBar
-                currentXP={levelProgress.currentXP}
-                maxXP={levelProgress.maxXP}
-                level={levelProgress.level}
-                size="large"
-                animated={true}
-              />
-            </LinearGradient>
-          </View>
-        </View>
-
-        {/* Stats and Streak */}
-        <View style={styles.statsGrid}>
-          {/* Streak Card - Now consistent with other stat cards */}
-          <TouchableOpacity
-            style={styles.statCard}
-            onPress={() => router.push('/(tabs)/progress')}
-          >
-            <LinearGradient
-              colors={['#1A1A2E', '#0F0F23']}
-              style={styles.statCardGradient}
-            >
-              <View
-                style={[styles.statIcon, { backgroundColor: '#F59E0B' + '20' }]}
+        {/* Daily Workout Section */}
+        <View style={styles.dailyWorkoutSection}>
+          <View style={styles.dailyWorkoutHeader}>
+            <View style={styles.dailyWorkoutTitleContainer}>
+              <Calendar size={20} color="#6B46C1" />
+              <Text style={styles.dailyWorkoutTitle}>Today's Workout</Text>
+            </View>
+            {dailyWorkout && !isGeneratingDaily && (
+              <TouchableOpacity
+                style={styles.regenerateButton}
+                onPress={regenerateDailyWorkout}
               >
-                <Flame size={20} color="#F59E0B" />
-              </View>
-              <Text style={styles.statValue}>
-                {profile?.current_streak || 0}
-              </Text>
-              <Text style={styles.statLabel}>Day Streak</Text>
-              <View style={styles.statExtra}>
-                {profile?.longest_streak &&
-                  profile.longest_streak > (profile?.current_streak || 0) && (
-                    <Text style={styles.bestStreak}>
-                      Best: {profile.longest_streak}
-                    </Text>
-                  )}
-              </View>
-            </LinearGradient>
-          </TouchableOpacity>
-
-          {/* Stats Cards */}
-          <TouchableOpacity
-            style={styles.statCard}
-            onPress={() => router.push('/(tabs)/workouts')}
-          >
-            <LinearGradient
-              colors={['#1A1A2E', '#0F0F23']}
-              style={styles.statCardGradient}
-            >
-              <View
-                style={[styles.statIcon, { backgroundColor: '#6B46C1' + '20' }]}
-              >
-                <Activity size={20} color="#6B46C1" />
-              </View>
-              <Text style={styles.statValue}>{workoutStats.totalWorkouts}</Text>
-              <Text style={styles.statLabel}>Workouts</Text>
-              <View style={styles.statExtra} />
-            </LinearGradient>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.statCard}
-            onPress={() => router.push('/(tabs)/profile')}
-          >
-            <LinearGradient
-              colors={['#1A1A2E', '#0F0F23']}
-              style={styles.statCardGradient}
-            >
-              <View
-                style={[styles.statIcon, { backgroundColor: '#F59E0B' + '20' }]}
-              >
-                <Trophy size={20} color="#F59E0B" />
-              </View>
-              <Text style={styles.statValue}>
-                {unlockedAchievements.length}
-              </Text>
-              <Text style={styles.statLabel}>Achievements</Text>
-              <View style={styles.statExtra} />
-            </LinearGradient>
-          </TouchableOpacity>
-        </View>
-
-        {/* Recent Achievements */}
-        {recentAchievements.length > 0 && (
-          <View style={styles.achievementsSection}>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Recent Achievements</Text>
-              <TouchableOpacity onPress={() => router.push('/(tabs)/profile')}>
-                <Text style={styles.viewAllText}>View All</Text>
+                <RefreshCw size={16} color="#6B46C1" />
               </TouchableOpacity>
-              <Text style={styles.levelText}>Level {profile?.level || 1}</Text>
-            </View>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              style={styles.achievementsScroll}
-            >
-              {recentAchievements.map((achievement) => (
-                <AchievementCard
-                  key={achievement.id}
-                  achievement={achievement}
-                  size="small"
-                  showProgress={false}
-                />
-              ))}
-            </ScrollView>
+            )}
           </View>
-        )}
 
-        {/* Quick Actions */}
-        <View style={styles.quickActionsSection}>
-          <Text style={styles.sectionTitle}>Quick Actions</Text>
-          {quickActions.map((action, index) => (
-            <TouchableOpacity
-              key={index}
-              style={styles.actionCard}
-              onPress={action.action}
-            >
-              <LinearGradient
-                colors={['#1A1A2E', '#0F0F23']}
-                style={styles.actionCardGradient}
-              >
-                <View style={styles.actionLeft}>
-                  <View style={styles.actionIcon}>
-                    <action.icon size={20} color="#6B46C1" />
-                  </View>
-                  <View style={styles.actionText}>
-                    <Text style={styles.actionTitle}>{action.title}</Text>
-                    <Text style={styles.actionSubtitle}>{action.subtitle}</Text>
-                  </View>
-                </View>
-                <ChevronRight size={20} color="#64748B" />
-              </LinearGradient>
-            </TouchableOpacity>
-          ))}
-        </View>
-
-        {/* Today's Challenge */}
-        <View style={styles.challengeSection}>
-          <Text style={styles.sectionTitle}>Today's Challenge</Text>
-          <TouchableOpacity
-            style={styles.challengeCard}
-            onPress={handleQuickWorkout}
-          >
+          <View style={styles.dailyWorkoutCard}>
             <LinearGradient
-              colors={['#6B46C1', '#8B5CF6']}
-              style={styles.challengeGradient}
+              colors={['#1A1A2E', '#0F0F23']}
+              style={styles.dailyWorkoutGradient}
             >
-              <View style={styles.challengeContent}>
-                <Zap size={24} color="#FFFFFF" />
-                <Text style={styles.challengeTitle}>Lightning Round</Text>
-                <Text style={styles.challengeSubtitle}>
-                  Complete 3 exercises in 10 minutes
-                </Text>
-                <View style={styles.challengeProgress}>
-                  <View style={styles.progressBar}>
-                    <View style={[styles.progressFill, { width: '60%' }]} />
-                  </View>
-                  <Text style={styles.progressText}>60% Complete</Text>
+              {dailyLoading || isGeneratingDaily ? (
+                <View style={styles.dailyWorkoutLoading}>
+                  <ActivityIndicator size="large" color="#6B46C1" />
+                  <Text style={styles.loadingText}>
+                    {isGeneratingDaily
+                      ? 'Generating your workout...'
+                      : 'Loading...'}
+                  </Text>
+                  <Text style={styles.loadingSubtext}>
+                    Selecting optimal muscles based on your recovery
+                  </Text>
                 </View>
-              </View>
+              ) : dailyWorkout ? (
+                <View style={styles.dailyWorkoutContent}>
+                  <View style={styles.dailyWorkoutInfo}>
+                    <Text style={styles.workoutName}>{dailyWorkout.name}</Text>
+                    <View style={styles.workoutDetails}>
+                      <View style={styles.workoutDetailItem}>
+                        <Target size={14} color="#94A3B8" />
+                        <Text style={styles.workoutDetailText}>
+                          {selectedMuscleNames.join(', ')}
+                        </Text>
+                      </View>
+                      <View style={styles.workoutDetailItem}>
+                        <Clock size={14} color="#94A3B8" />
+                        <Text style={styles.workoutDetailText}>
+                          {dailyWorkout.estimatedDuration} min
+                        </Text>
+                      </View>
+                      <View style={styles.workoutDetailItem}>
+                        <Sparkles size={14} color="#94A3B8" />
+                        <Text style={styles.workoutDetailText}>
+                          {dailyWorkout.exercises?.length || 0} exercises
+                        </Text>
+                      </View>
+                    </View>
+                  </View>
+
+                  <TouchableOpacity
+                    style={styles.startWorkoutButton}
+                    onPress={startDailyWorkout}
+                  >
+                    <LinearGradient
+                      colors={['#6B46C1', '#8B5CF6']}
+                      style={styles.startWorkoutGradient}
+                    >
+                      <Play size={16} color="#FFFFFF" />
+                      <Text style={styles.startWorkoutText}>Start</Text>
+                    </LinearGradient>
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <View style={styles.dailyWorkoutError}>
+                  <Text style={styles.errorText}>
+                    Unable to generate workout
+                  </Text>
+                  <TouchableOpacity
+                    style={styles.retryButton}
+                    onPress={regenerateDailyWorkout}
+                  >
+                    <Text style={styles.retryText}>Try Again</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
             </LinearGradient>
-          </TouchableOpacity>
+          </View>
         </View>
 
-        {/* Level Up Celebration */}
-        <LevelUpCelebration
-          visible={isLevelingUpState}
-          newLevel={profile?.level || 1}
-          onComplete={() => setIsLevelingUpState(false)}
-        />
+        {/* Lightning HIIT Workout Card */}
+        <View style={styles.workoutCard}>
+          <LinearGradient
+            colors={['#6B46C1', '#8B5CF6']}
+            style={styles.workoutGradient}
+          >
+            <View style={styles.workoutHeader}>
+              <View style={styles.workoutTitleContainer}>
+                <Text style={styles.workoutTitle}>Today's</Text>
+                <Text style={styles.workoutTitle}>Workout</Text>
+              </View>
+              <View style={styles.workoutDuration}>
+                <Text style={styles.durationText}>
+                  {dailyWorkout?.estimatedDuration || 35}
+                </Text>
+                <Text style={styles.durationUnit}>min</Text>
+              </View>
+            </View>
+
+            <Text style={styles.workoutDescription}>
+              {dailyWorkout
+                ? `${selectedMuscleNames.join(', ')} • ${
+                    dailyWorkout.exercises?.length || 0
+                  } exercises`
+                : 'AI-powered personalized workout'}
+            </Text>
+
+            <View style={styles.workoutFooter}>
+              <View style={styles.difficultySection}>
+                <Text style={styles.difficultyLabel}>Difficulty:</Text>
+                {renderLightningBolts(
+                  dailyWorkout?.difficulty === 'beginner'
+                    ? 1
+                    : dailyWorkout?.difficulty === 'intermediate'
+                    ? 2
+                    : 3
+                )}
+              </View>
+              <TouchableOpacity
+                style={styles.startButton}
+                onPress={startDailyWorkout}
+                disabled={!dailyWorkout || dailyLoading}
+              >
+                <Text style={styles.startButtonText}>
+                  {dailyLoading ? 'Loading...' : 'Start'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </LinearGradient>
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -391,231 +327,300 @@ const styles = StyleSheet.create({
   header: {
     paddingHorizontal: 20,
     paddingTop: 10,
-    paddingBottom: 20,
+    paddingBottom: 30,
   },
-  headerContent: {
+  headerTop: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'flex-start',
   },
   headerLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flex: 1,
   },
   logoContainer: {
-    marginLeft: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
   },
   logoText: {
-    fontSize: 20,
+    fontSize: 32,
     fontWeight: '700',
     color: '#FFFFFF',
+    marginLeft: 8,
   },
   levelText: {
-    fontSize: 14,
-    color: '#6B46C1',
-    fontWeight: '600',
-    textTransform: 'capitalize',
-  },
-  profileButton: {
-    padding: 4,
-  },
-  avatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#6B46C1',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  avatarText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  welcomeSection: {
-    paddingHorizontal: 20,
-    marginBottom: 20,
-  },
-  welcomeTitle: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: '#FFFFFF',
-    marginBottom: 8,
-  },
-  welcomeSubtitle: {
     fontSize: 16,
     color: '#94A3B8',
-    marginBottom: 20,
+    fontWeight: '400',
   },
-  progressContainer: {
-    alignItems: 'center',
+  pointsContainer: {
+    alignItems: 'flex-end',
   },
-  progressGradient: {
-    borderRadius: 20,
-    padding: 24,
-    borderWidth: 1,
-    borderColor: '#1A1A2E',
-    width: '100%',
-  },
-  statsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    paddingHorizontal: 20,
-    marginBottom: 30,
-    justifyContent: 'space-between',
-  },
-  statCard: {
-    width: '48%',
-    marginBottom: 16,
-  },
-  statCardGradient: {
-    borderRadius: 16,
-    padding: 20,
-    borderWidth: 1,
-    borderColor: '#1A1A2E',
-  },
-  statIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  statValue: {
+  pointsValue: {
     fontSize: 24,
     fontWeight: '700',
-    color: '#FFFFFF',
-    marginBottom: 4,
+    color: '#F59E0B',
+    marginBottom: 2,
   },
-  statLabel: {
+  pointsLabel: {
     fontSize: 14,
     color: '#94A3B8',
   },
-  statExtra: {
-    height: 20,
-    marginTop: 4,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  bestStreak: {
-    fontSize: 12,
-    color: '#94A3B8',
-  },
-  achievementsSection: {
-    paddingHorizontal: 20,
-    marginBottom: 30,
-  },
-  sectionHeader: {
+  statsSection: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  viewAllText: {
-    fontSize: 14,
-    color: '#6B46C1',
-    fontWeight: '600',
-  },
-  achievementsScroll: {
-    paddingVertical: 8,
-  },
-  quickActionsSection: {
     paddingHorizontal: 20,
     marginBottom: 30,
+    gap: 16,
   },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#FFFFFF',
-    marginBottom: 16,
-  },
-  actionCard: {
-    marginBottom: 12,
-  },
-  actionCardGradient: {
+  goalCard: {
+    flex: 1,
+    backgroundColor: '#1A1A2E',
     borderRadius: 16,
     padding: 20,
     borderWidth: 1,
+    borderColor: '#2D2D44',
+  },
+  goalTitle: {
+    fontSize: 16,
+    color: '#94A3B8',
+    marginBottom: 16,
+    fontWeight: '500',
+  },
+  splitContainer: {
+    alignItems: 'center',
+  },
+  splitContent: {
+    alignItems: 'center',
+  },
+  splitText: {
+    fontSize: 18,
+    color: '#FFFFFF',
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  splitSeparator: {
+    color: '#94A3B8',
+    fontWeight: '400',
+  },
+  streakCard: {
+    flex: 1,
+    backgroundColor: '#1A1A2E',
+    borderRadius: 16,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: '#2D2D44',
+  },
+  streakTitle: {
+    fontSize: 16,
+    color: '#94A3B8',
+    marginBottom: 16,
+    fontWeight: '500',
+  },
+  streakContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+  },
+  streakValue: {
+    fontSize: 24,
+    color: '#FFFFFF',
+    fontWeight: '700',
+    marginLeft: 8,
+  },
+  workoutCard: {
+    marginHorizontal: 20,
+    marginBottom: 20,
+    borderRadius: 24,
+    overflow: 'hidden',
+  },
+  workoutGradient: {
+    padding: 24,
+    borderWidth: 1,
+    borderColor: '#2D2D44',
+  },
+  workoutHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 16,
+  },
+  workoutTitleContainer: {
+    flex: 1,
+  },
+  workoutTitle: {
+    fontSize: 32,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    lineHeight: 36,
+  },
+  workoutDuration: {
+    alignItems: 'center',
+  },
+  durationText: {
+    fontSize: 32,
+    fontWeight: '700',
+    color: '#F59E0B',
+    lineHeight: 36,
+  },
+  durationUnit: {
+    fontSize: 14,
+    color: '#F59E0B',
+    fontWeight: '500',
+  },
+  workoutDescription: {
+    fontSize: 16,
+    color: '#E2E8F0',
+    marginBottom: 24,
+  },
+  workoutFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  difficultySection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  difficultyLabel: {
+    fontSize: 14,
+    color: '#94A3B8',
+    marginRight: 8,
+  },
+  difficultyContainer: {
+    flexDirection: 'row',
+    gap: 4,
+  },
+  startButton: {
+    backgroundColor: '#6B46C1',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 24,
+  },
+  startButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  // Daily Workout Styles
+  dailyWorkoutSection: {
+    paddingHorizontal: 20,
+    marginBottom: 24,
+  },
+  dailyWorkoutHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  dailyWorkoutTitleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  dailyWorkoutTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#FFFFFF',
+    marginLeft: 8,
+  },
+  regenerateButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#1A1A2E',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#6B46C1',
+  },
+  dailyWorkoutCard: {
+    borderRadius: 16,
+    overflow: 'hidden',
+  },
+  dailyWorkoutGradient: {
+    padding: 20,
+    borderWidth: 1,
     borderColor: '#1A1A2E',
+  },
+  dailyWorkoutLoading: {
+    alignItems: 'center',
+    paddingVertical: 20,
+  },
+  loadingText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
+    marginTop: 12,
+    marginBottom: 4,
+  },
+  loadingSubtext: {
+    fontSize: 14,
+    color: '#94A3B8',
+    textAlign: 'center',
+  },
+  dailyWorkoutContent: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  actionLeft: {
+  dailyWorkoutInfo: {
+    flex: 1,
+    paddingRight: 16,
+  },
+  workoutName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
+    marginBottom: 8,
+  },
+  workoutDetails: {
+    gap: 4,
+  },
+  workoutDetailItem: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 6,
+  },
+  workoutDetailText: {
+    fontSize: 12,
+    color: '#94A3B8',
     flex: 1,
   },
-  actionIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#6B46C1' + '20',
-    justifyContent: 'center',
+  startWorkoutButton: {
+    borderRadius: 12,
+  },
+  startWorkoutGradient: {
+    flexDirection: 'row',
     alignItems: 'center',
-    marginRight: 16,
+    justifyContent: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 12,
+    gap: 6,
   },
-  actionText: {
-    flex: 1,
-  },
-  actionTitle: {
-    fontSize: 16,
+  startWorkoutText: {
+    fontSize: 14,
     fontWeight: '600',
     color: '#FFFFFF',
-    marginBottom: 4,
   },
-  actionSubtitle: {
+  dailyWorkoutError: {
+    alignItems: 'center',
+    paddingVertical: 20,
+  },
+  errorText: {
     fontSize: 14,
     color: '#94A3B8',
+    marginBottom: 12,
   },
-  challengeSection: {
-    paddingHorizontal: 20,
-    marginBottom: 30,
+  retryButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+    backgroundColor: '#6B46C1',
   },
-  challengeCard: {
-    marginBottom: 16,
-  },
-  challengeGradient: {
-    borderRadius: 20,
-    padding: 24,
-  },
-  challengeContent: {
-    alignItems: 'center',
-  },
-  challengeTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#FFFFFF',
-    marginTop: 12,
-    marginBottom: 8,
-  },
-  challengeSubtitle: {
-    fontSize: 16,
-    color: '#E2E8F0',
-    textAlign: 'center',
-    marginBottom: 20,
-  },
-  challengeProgress: {
-    width: '100%',
-    alignItems: 'center',
-  },
-  progressBar: {
-    width: '100%',
-    height: 8,
-    backgroundColor: '#FFFFFF' + '20',
-    borderRadius: 4,
-    overflow: 'hidden',
-    marginBottom: 8,
-  },
-  progressFill: {
-    height: '100%',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 4,
-  },
-  progressText: {
-    fontSize: 14,
-    color: '#E2E8F0',
+  retryText: {
+    fontSize: 12,
     fontWeight: '600',
+    color: '#FFFFFF',
   },
 });

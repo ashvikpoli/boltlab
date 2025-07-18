@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase, Profile } from '@/lib/supabase';
 import { Session, User } from '@supabase/supabase-js';
 
@@ -76,8 +76,42 @@ export function useAuth() {
         return { data, error };
       }
 
-      // The database trigger should create the profile automatically
-      // If it fails, the profile will be created on first login
+      // If user was created but profile creation failed in trigger, create it manually
+      if (data.user) {
+        // Wait a moment for the trigger to execute
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        // Check if profile was created by the trigger
+        const { data: existingProfile, error: checkError } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('id', data.user.id)
+          .single();
+
+        if (checkError && checkError.code === 'PGRST116') {
+          // Profile doesn't exist, create it manually as fallback
+          console.log('Profile not created by trigger, creating manually...');
+          const { error: profileError } = await supabase
+            .from('profiles')
+            .insert({
+              id: data.user.id,
+              email: data.user.email,
+              username: username || data.user.email?.split('@')[0] || 'user',
+              level: 1,
+              total_xp: 0,
+              current_streak: 0,
+              longest_streak: 0,
+              avatar_color: 'purple',
+            });
+
+          if (profileError) {
+            console.error('Manual profile creation error:', profileError);
+            // Don't fail signup if profile creation fails - it can be created later
+          } else {
+            console.log('Profile created manually successfully');
+          }
+        }
+      }
 
       return { data, error };
     } catch (error) {
@@ -197,7 +231,7 @@ export function useAuth() {
     return { data, error };
   };
 
-  const loadOnboardingData = async () => {
+  const loadOnboardingData = useCallback(async () => {
     if (!user) return { data: null, error: new Error('No user logged in') };
 
     try {
@@ -216,9 +250,9 @@ export function useAuth() {
       console.error('Error loading onboarding data:', error);
       return { data: null, error };
     }
-  };
+  }, [user]);
 
-  const hasCompletedOnboarding = async () => {
+  const hasCompletedOnboarding = useCallback(async () => {
     if (!user) return false;
 
     try {
@@ -234,7 +268,7 @@ export function useAuth() {
       console.error('Error checking onboarding status:', error);
       return false;
     }
-  };
+  }, [user]);
 
   return {
     session,

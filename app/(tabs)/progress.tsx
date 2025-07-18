@@ -48,10 +48,33 @@ export default function ProgressScreen() {
     { day: 'Sun', workouts: 1, xp: 100 },
   ];
 
-  const recentPRs = personalRecords.slice(0, 4).map((pr) => ({
+  // Get top 3 heaviest lifts
+  const getTimeAgo = (date: string) => {
+    const now = new Date();
+    const prDate = new Date(date);
+    const diffTime = Math.abs(now.getTime() - prDate.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    if (diffDays === 1) return '1 day ago';
+    if (diffDays < 7) return `${diffDays} days ago`;
+    if (diffDays < 14) return '1 week ago';
+    if (diffDays < 30) return `${Math.floor(diffDays / 7)} weeks ago`;
+    if (diffDays < 60) return '1 month ago';
+    if (diffDays < 365) return `${Math.floor(diffDays / 30)} months ago`;
+    return `${Math.floor(diffDays / 365)} year${
+      Math.floor(diffDays / 365) > 1 ? 's' : ''
+    } ago`;
+  };
+
+  const topHeaviestLifts = personalRecords
+    .filter((pr) => pr.weight && pr.weight > 0) // Only include records with weight
+    .sort((a, b) => (b.weight || 0) - (a.weight || 0)) // Sort by weight (heaviest first)
+    .slice(0, 3) // Take top 3
+    .map((pr) => ({
     exercise: pr.exercise_name,
     weight: pr.weight || 0,
     date: pr.date,
+      timeAgo: getTimeAgo(pr.date),
     isNew: new Date(pr.date).getTime() > Date.now() - 7 * 24 * 60 * 60 * 1000, // New if within last week
   }));
 
@@ -125,7 +148,15 @@ export default function ProgressScreen() {
   const renderPersonalRecords = () => (
     <View style={styles.prSection}>
       <Text style={styles.sectionTitle}>Personal Records</Text>
-      {recentPRs.map((pr, index) => (
+      {topHeaviestLifts.length === 0 ? (
+        <View style={styles.noDataContainer}>
+          <Text style={styles.noDataText}>No personal records yet</Text>
+          <Text style={styles.noDataSubtext}>
+            Complete workouts with weights to see your heaviest lifts!
+          </Text>
+        </View>
+      ) : (
+        topHeaviestLifts.map((pr, index) => (
         <View key={index} style={styles.prCard}>
           <LinearGradient
             colors={['#1A1A2E', '#0F0F23']}
@@ -134,7 +165,7 @@ export default function ProgressScreen() {
             <View style={styles.prContent}>
               <View style={styles.prLeft}>
                 <Text style={styles.prExercise}>{pr.exercise}</Text>
-                <Text style={styles.prDate}>{pr.date}</Text>
+                  <Text style={styles.prDate}>{pr.timeAgo}</Text>
               </View>
               <View style={styles.prRight}>
                 <Text style={styles.prWeight}>{pr.weight} lbs</Text>
@@ -148,7 +179,8 @@ export default function ProgressScreen() {
             </View>
           </LinearGradient>
         </View>
-      ))}
+        ))
+      )}
     </View>
   );
 
@@ -578,6 +610,24 @@ const styles = StyleSheet.create({
     color: '#94A3B8',
     textAlign: 'center',
     marginTop: 16,
+    lineHeight: 20,
+  },
+  noDataContainer: {
+    alignItems: 'center',
+    paddingVertical: 32,
+    paddingHorizontal: 20,
+  },
+  noDataText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#94A3B8',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  noDataSubtext: {
+    fontSize: 14,
+    color: '#64748B',
+    textAlign: 'center',
     lineHeight: 20,
   },
 });

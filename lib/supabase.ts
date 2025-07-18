@@ -30,11 +30,19 @@ export interface Profile {
 export interface OnboardingData {
   id: string;
   user_id: string;
+  gender?: string;
+  preferred_units?: 'metric' | 'imperial';
+  height_feet?: number;
+  height_inches?: number;
+  height_cm?: number;
+  weight_pounds?: number;
+  weight_kg?: number;
   fitness_goals: string[];
   experience_level: string;
   equipment: string[];
   workout_frequency: string;
   time_availability: string;
+  workout_duration: string;
   limitations: string[];
   limitations_other?: string;
   motivation_style: string[];
@@ -73,6 +81,8 @@ export interface PersonalRecord {
   date: string;
   created_at: string;
 }
+
+
 
 export interface Friendship {
   id: string;

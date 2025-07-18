@@ -19,6 +19,7 @@ interface SetTrackerProps {
   generatedSets?: number;
   generatedReps?: number;
   generatedWeight?: number;
+  preferredUnits?: 'metric' | 'imperial';
 }
 
 export default function SetTracker({
@@ -30,7 +31,11 @@ export default function SetTracker({
   generatedSets,
   generatedReps,
   generatedWeight,
+  preferredUnits = 'imperial',
 }: SetTrackerProps) {
+  const isMetric = preferredUnits === 'metric';
+  const weightUnit = isMetric ? 'kg' : 'lbs';
+  const weightIncrement = isMetric ? 2.5 : 5;
   // Auto-fill with generated values or previous set values
   const [weight, setWeight] = useState(() => {
     if (previousSet?.weight) return previousSet.weight.toString();
@@ -124,7 +129,7 @@ export default function SetTracker({
           <Text style={styles.setTitle}>Set {setNumber}</Text>
           {previousSet && (
             <Text style={styles.previousSet}>
-              Previous: {requiresWeight() ? `${previousSet.weight}kg × ` : ''}
+              Previous: {requiresWeight() ? `${previousSet.weight}${weightUnit} × ` : ''}
               {previousSet.reps} reps
             </Text>
           )}
@@ -132,7 +137,7 @@ export default function SetTracker({
             <Text style={styles.recommendedSet}>
               Recommended:{' '}
               {requiresWeight() && generatedWeight
-                ? `${generatedWeight}kg × `
+                ? `${generatedWeight}${weightUnit} × `
                 : ''}
               {generatedReps} reps
             </Text>
@@ -142,11 +147,11 @@ export default function SetTracker({
         <View style={styles.inputContainer}>
           {requiresWeight() && (
             <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Weight (kg)</Text>
+              <Text style={styles.inputLabel}>Weight ({weightUnit})</Text>
               <View style={styles.inputRow}>
                 <TouchableOpacity
                   style={styles.adjustButton}
-                  onPress={() => adjustWeight(-2.5)}
+                  onPress={() => adjustWeight(-weightIncrement)}
                 >
                   <Minus size={16} color="#6B46C1" />
                 </TouchableOpacity>
@@ -160,7 +165,7 @@ export default function SetTracker({
                 />
                 <TouchableOpacity
                   style={styles.adjustButton}
-                  onPress={() => adjustWeight(2.5)}
+                  onPress={() => adjustWeight(weightIncrement)}
                 >
                   <Plus size={16} color="#6B46C1" />
                 </TouchableOpacity>

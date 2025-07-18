@@ -30,15 +30,19 @@ import {
   X,
 } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '@/hooks/useAuth';
+import {
+  useMuscleFatigue,
+  type MuscleGroup as MuscleGroupType,
+} from '@/hooks/useMuscleFatigue';
 import { geminiWorkoutGenerator, GeneratedWorkout } from '@/lib/gemini';
 import BoltChat from '@/components/BoltChat';
 import ExerciseInstructions from '@/components/ExerciseInstructions';
 import ExerciseCard from '@/components/ExerciseCard';
 import { exerciseLibrary } from '@/data/exercises';
 
-interface MuscleGroup {
+interface MuscleGroupDisplay {
   id: string;
   name: string;
   emoji: string;
@@ -52,6 +56,8 @@ interface MuscleGroup {
 export default function WorkoutsScreen() {
   const router = useRouter();
   const { profile, loadOnboardingData, user } = useAuth();
+  const { getMuscleFatiguePercentage, recoverMuscleFatigue } =
+    useMuscleFatigue();
   const [selectedMuscles, setSelectedMuscles] = useState<string[]>([]);
   const [generatedWorkout, setGeneratedWorkout] =
     useState<GeneratedWorkout | null>(null);
@@ -60,6 +66,7 @@ export default function WorkoutsScreen() {
   const [isLoadingOnboarding, setIsLoadingOnboarding] = useState(true);
   const [onboardingError, setOnboardingError] = useState<string | null>(null);
   const [showBoltChat, setShowBoltChat] = useState(false);
+  const loadingRef = useRef(false);
 
   // New state for exercise instructions modal
   const [showExerciseInstructions, setShowExerciseInstructions] =
@@ -68,13 +75,14 @@ export default function WorkoutsScreen() {
   const [showMuscleSelectionModal, setShowMuscleSelectionModal] =
     useState(false);
 
-  const muscleGroups = [
+  // Create muscle groups with real-time fatigue percentages
+  const getMuscleGroups = (): MuscleGroupDisplay[] => [
     {
       id: 'chest',
       name: 'Chest',
       emoji: '🏋️‍♂️',
       icon: Heart,
-      percentage: 100,
+      percentage: getMuscleFatiguePercentage('chest'),
       color: '#6B46C1',
       description: 'Pectorals',
       imageUrl: require('@/assets/images/muscle-groups/abs.png'), // Using abs for chest temporarily
@@ -84,7 +92,7 @@ export default function WorkoutsScreen() {
       name: 'Back',
       emoji: '🏋️‍♀️',
       icon: ShieldCheck,
-      percentage: 100,
+      percentage: getMuscleFatiguePercentage('back'),
       color: '#8B5CF6',
       description: 'Lats & Rhomboids',
       imageUrl: require('@/assets/images/muscle-groups/lower-back.png'), // Using lower-back for back
@@ -94,7 +102,7 @@ export default function WorkoutsScreen() {
       name: 'Biceps',
       emoji: '💪',
       icon: Lightning,
-      percentage: 80,
+      percentage: getMuscleFatiguePercentage('biceps'),
       color: '#A78BFA',
       description: 'Biceps Brachii',
       imageUrl: require('@/assets/images/muscle-groups/biceps.png'),
@@ -104,7 +112,7 @@ export default function WorkoutsScreen() {
       name: 'Triceps',
       emoji: '🔥',
       icon: Zap,
-      percentage: 85,
+      percentage: getMuscleFatiguePercentage('triceps'),
       color: '#7C3AED',
       description: 'Triceps Brachii',
       imageUrl: require('@/assets/images/muscle-groups/triceps.png'),
@@ -114,7 +122,7 @@ export default function WorkoutsScreen() {
       name: 'Shoulders',
       emoji: '🤸‍♀️',
       icon: Activity,
-      percentage: 60,
+      percentage: getMuscleFatiguePercentage('shoulders'),
       color: '#7E22CE',
       description: 'Deltoids',
       imageUrl: require('@/assets/images/muscle-groups/traps.png'), // Using traps for shoulders temporarily
@@ -124,7 +132,7 @@ export default function WorkoutsScreen() {
       name: 'Traps',
       emoji: '⛰️',
       icon: Target,
-      percentage: 70,
+      percentage: getMuscleFatiguePercentage('traps'),
       color: '#9333EA',
       description: 'Trapezius',
       imageUrl: require('@/assets/images/muscle-groups/traps.png'),
@@ -134,7 +142,7 @@ export default function WorkoutsScreen() {
       name: 'Forearms',
       emoji: '🤲',
       icon: Activity,
-      percentage: 65,
+      percentage: getMuscleFatiguePercentage('forearms'),
       color: '#C084FC',
       description: 'Forearm Muscles',
       imageUrl: require('@/assets/images/muscle-groups/forearms.png'),
@@ -144,7 +152,7 @@ export default function WorkoutsScreen() {
       name: 'Abs',
       emoji: '🔥',
       icon: Flame,
-      percentage: 75,
+      percentage: getMuscleFatiguePercentage('abs'),
       color: '#F59E0B',
       description: 'Abdominals',
       imageUrl: require('@/assets/images/muscle-groups/abs.png'),
@@ -154,7 +162,7 @@ export default function WorkoutsScreen() {
       name: 'Lower Back',
       emoji: '🏋️',
       icon: ShieldCheck,
-      percentage: 80,
+      percentage: getMuscleFatiguePercentage('lower-back'),
       color: '#EF4444',
       description: 'Erector Spinae',
       imageUrl: require('@/assets/images/muscle-groups/lower-back.png'),
@@ -164,7 +172,7 @@ export default function WorkoutsScreen() {
       name: 'Quads',
       emoji: '🦵',
       icon: Zap,
-      percentage: 90,
+      percentage: getMuscleFatiguePercentage('quads'),
       color: '#3B82F6',
       description: 'Quadriceps',
       imageUrl: require('@/assets/images/muscle-groups/quads.png'),
@@ -174,7 +182,7 @@ export default function WorkoutsScreen() {
       name: 'Hamstrings',
       emoji: '🦵',
       icon: Activity,
-      percentage: 85,
+      percentage: getMuscleFatiguePercentage('hamstrings'),
       color: '#2563EB',
       description: 'Hamstring Muscles',
       imageUrl: require('@/assets/images/muscle-groups/hamstrings.png'),
@@ -184,7 +192,7 @@ export default function WorkoutsScreen() {
       name: 'Glutes',
       emoji: '🍑',
       icon: Target,
-      percentage: 90,
+      percentage: getMuscleFatiguePercentage('glutes'),
       color: '#1D4ED8',
       description: 'Glute Max & Med',
       imageUrl: require('@/assets/images/muscle-groups/glutes.png'),
@@ -194,7 +202,7 @@ export default function WorkoutsScreen() {
       name: 'Calves',
       emoji: '🦵',
       icon: Lightning,
-      percentage: 70,
+      percentage: getMuscleFatiguePercentage('calves'),
       color: '#1E40AF',
       description: 'Calf Muscles',
       imageUrl: require('@/assets/images/muscle-groups/calves.png'),
@@ -204,7 +212,7 @@ export default function WorkoutsScreen() {
       name: 'Abductors',
       emoji: '🦵',
       icon: Activity,
-      percentage: 65,
+      percentage: getMuscleFatiguePercentage('abductors'),
       color: '#10B981',
       description: 'Hip Abductors',
       imageUrl: require('@/assets/images/muscle-groups/abductors.png'),
@@ -214,12 +222,14 @@ export default function WorkoutsScreen() {
       name: 'Adductors',
       emoji: '🦵',
       icon: Target,
-      percentage: 65,
+      percentage: getMuscleFatiguePercentage('adductors'),
       color: '#059669',
       description: 'Hip Adductors',
       imageUrl: require('@/assets/images/muscle-groups/adductors.png'),
     },
   ];
+
+  const muscleGroups = getMuscleGroups();
 
   // Mock exercises for demo (matching the Exercise interface)
   const mockExercises = [
@@ -341,7 +351,17 @@ export default function WorkoutsScreen() {
   ];
 
   useEffect(() => {
-    loadUserData();
+    if (user) {
+      loadUserData();
+    } else {
+      setIsLoadingOnboarding(false);
+      setOnboardingData(null);
+    }
+  }, [user, loadUserData]);
+
+  useEffect(() => {
+    // Recover muscle fatigue over time
+    recoverMuscleFatigue();
     // Set some default selected muscles and mock workout for demo
     setSelectedMuscles(['chest', 'back', 'biceps', 'shoulders']);
     setGeneratedWorkout({
@@ -353,15 +373,22 @@ export default function WorkoutsScreen() {
       targetMuscles: ['chest', 'back', 'biceps', 'shoulders'],
       notes: 'Focus on form and controlled movements',
     });
-  }, [user]);
+  }, []); // Run once on mount
 
-  const loadUserData = async () => {
+  const loadUserData = useCallback(async () => {
     if (!user) {
       console.log('No user found, skipping onboarding data load');
       setIsLoadingOnboarding(false);
       return;
     }
 
+    // Prevent multiple simultaneous loads
+    if (loadingRef.current) {
+      console.log('Already loading onboarding data, skipping...');
+      return;
+    }
+
+    loadingRef.current = true;
     setIsLoadingOnboarding(true);
     setOnboardingError(null);
 
@@ -392,8 +419,9 @@ export default function WorkoutsScreen() {
       setOnboardingData(null);
     } finally {
       setIsLoadingOnboarding(false);
+      loadingRef.current = false;
     }
-  };
+  }, [user, loadOnboardingData]);
 
   const toggleMuscleSelection = (muscleId: string) => {
     setSelectedMuscles((prev) => {
@@ -433,6 +461,25 @@ export default function WorkoutsScreen() {
       console.log('Error state:', onboardingError);
       console.log('==============================');
 
+      // Determine workout duration based on user preferences
+      const getWorkoutDuration = () => {
+        const workoutDuration = onboardingData?.workout_duration;
+        switch (workoutDuration) {
+          case '15-20':
+            return 20;
+          case '20-30':
+            return 30;
+          case '30-45':
+            return 45;
+          case '45-60':
+            return 60;
+          case '60+':
+            return 75;
+          default:
+            return 35; // Default to 35 minutes
+        }
+      };
+
       // Enhanced user context with all onboarding data for highly personalized workouts
       const userContext = {
         // Basic info
@@ -448,6 +495,9 @@ export default function WorkoutsScreen() {
         limitationsOther: onboardingData?.limitations_other,
         motivationStyle: onboardingData?.motivation_style || [],
         workoutStyle: onboardingData?.workout_style || [],
+
+        // Workout duration
+        estimatedDuration: getWorkoutDuration(),
       };
 
       console.log(
@@ -605,7 +655,7 @@ export default function WorkoutsScreen() {
     });
   };
 
-  const renderMuscleGroup = (muscle: MuscleGroup, index: number) => (
+  const renderMuscleGroup = (muscle: MuscleGroupDisplay, index: number) => (
     <TouchableOpacity
       key={muscle.id}
       style={[
@@ -645,7 +695,7 @@ export default function WorkoutsScreen() {
     </TouchableOpacity>
   );
 
-  const renderTargetMuscle = (muscle: MuscleGroup, index: number) => (
+  const renderTargetMuscle = (muscle: MuscleGroupDisplay, index: number) => (
     <View key={muscle.id} style={styles.targetMuscleItem}>
       <View style={styles.targetMuscleContainer}>
         <View style={styles.targetMuscleImageContainer}>
@@ -691,24 +741,24 @@ export default function WorkoutsScreen() {
 
   return (
     <>
-    <SafeAreaView style={styles.container}>
-      <LinearGradient
-        colors={['#0F0F23', '#1A1A2E', '#0F0F23']}
-        style={styles.background}
-      >
-        {/* Header */}
-        <View style={styles.header}>
-          <Text style={styles.headerTitle}>Workouts</Text>
-        </View>
-
-        <ScrollView
-          style={styles.scrollView}
-            contentContainerStyle={styles.scrollViewContent}
-          showsVerticalScrollIndicator={false}
+      <SafeAreaView style={styles.container}>
+        <LinearGradient
+          colors={['#0F0F23', '#1A1A2E', '#0F0F23']}
+          style={styles.background}
         >
-          {/* Target Muscles Section */}
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
+          {/* Header */}
+          <View style={styles.header}>
+            <Text style={styles.headerTitle}>Workouts</Text>
+          </View>
+
+          <ScrollView
+            style={styles.scrollView}
+            contentContainerStyle={styles.scrollViewContent}
+            showsVerticalScrollIndicator={false}
+          >
+            {/* Target Muscles Section */}
+            <View style={styles.section}>
+              <View style={styles.sectionHeader}>
                 <Text style={styles.sectionTitle}>Target muscles</Text>
                 <TouchableOpacity
                   style={styles.addMuscleButton}
@@ -716,7 +766,7 @@ export default function WorkoutsScreen() {
                 >
                   <Plus size={20} color="#6B46C1" />
                 </TouchableOpacity>
-            </View>
+              </View>
 
               <ScrollView
                 horizontal
@@ -726,19 +776,19 @@ export default function WorkoutsScreen() {
               >
                 {selectedMuscles.length > 0
                   ? muscleGroups
-                  .filter((muscle) => selectedMuscles.includes(muscle.id))
+                      .filter((muscle) => selectedMuscles.includes(muscle.id))
                       .map(renderTargetMuscle)
                   : muscleGroups.slice(0, 6).map(renderTargetMuscle)}
               </ScrollView>
-          </View>
+            </View>
 
-          {/* Exercises Section */}
-          {generatedWorkout && (
-            <View style={styles.section}>
-              <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>
-                  {generatedWorkout.exercises.length} exercises
-                </Text>
+            {/* Exercises Section */}
+            {generatedWorkout && (
+              <View style={styles.section}>
+                <View style={styles.sectionHeader}>
+                  <Text style={styles.sectionTitle}>
+                    {generatedWorkout.exercises.length} exercises
+                  </Text>
                   <TouchableOpacity
                     style={styles.startWorkoutButton}
                     onPress={() => startWorkout(generatedWorkout)}
@@ -750,12 +800,12 @@ export default function WorkoutsScreen() {
                       <Play size={16} color="#FFFFFF" />
                       <Text style={styles.startWorkoutText}>Start Workout</Text>
                     </LinearGradient>
-                </TouchableOpacity>
-              </View>
+                  </TouchableOpacity>
+                </View>
 
-              {generatedWorkout.exercises.map(renderExerciseCard)}
-            </View>
-          )}
+                {generatedWorkout.exercises.map(renderExerciseCard)}
+              </View>
+            )}
           </ScrollView>
 
           {/* Loading Overlay */}
@@ -877,60 +927,60 @@ export default function WorkoutsScreen() {
                   </View>
                 </ScrollView>
 
-          {/* Generate Workout Button */}
+                {/* Generate Workout Button */}
                 <View style={styles.modalFooter}>
-            <TouchableOpacity
+                  <TouchableOpacity
                     style={styles.generateWorkoutButton}
                     onPress={() => {
                       setShowMuscleSelectionModal(false);
                       generateWorkoutWithGemini();
                     }}
                     disabled={selectedMuscles.length === 0}
-            >
-              <LinearGradient
-                colors={
-                  selectedMuscles.length > 0
-                    ? ['#6B46C1', '#8B5CF6']
-                    : ['#374151', '#4B5563']
-                }
+                  >
+                    <LinearGradient
+                      colors={
+                        selectedMuscles.length > 0
+                          ? ['#6B46C1', '#8B5CF6']
+                          : ['#374151', '#4B5563']
+                      }
                       style={styles.generateWorkoutGradient}
-              >
-                  <Sparkles size={20} color="#FFFFFF" />
+                    >
+                      <Sparkles size={20} color="#FFFFFF" />
                       <Text style={styles.generateWorkoutText}>
                         {selectedMuscles.length > 0
                           ? `Generate Workout (${selectedMuscles.length} muscles)`
                           : 'Select muscles first'}
-                </Text>
+                      </Text>
+                    </LinearGradient>
+                  </TouchableOpacity>
+                </View>
               </LinearGradient>
-            </TouchableOpacity>
-          </View>
-          </LinearGradient>
             </SafeAreaView>
           </Modal>
 
-        {/* Bolt Chat Modal */}
-        <BoltChat
-          visible={showBoltChat}
-          onClose={() => setShowBoltChat(false)}
-          currentWorkout={generatedWorkout}
-          onWorkoutModified={handleWorkoutModified}
-        />
-
-        {/* Exercise Instructions Modal */}
-        {selectedExercise && (
-          <ExerciseInstructions
-            exercise={selectedExercise}
-            visible={showExerciseInstructions}
-            onClose={() => {
-              setShowExerciseInstructions(false);
-              setSelectedExercise(null);
-            }}
-            onStartExercise={handleStartExerciseFromInstructions}
-              onReplace={handleReplaceExercise}
+          {/* Bolt Chat Modal */}
+          <BoltChat
+            visible={showBoltChat}
+            onClose={() => setShowBoltChat(false)}
+            currentWorkout={generatedWorkout}
+            onWorkoutModified={handleWorkoutModified}
           />
-        )}
-      </LinearGradient>
-    </SafeAreaView>
+
+          {/* Exercise Instructions Modal */}
+          {selectedExercise && (
+            <ExerciseInstructions
+              exercise={selectedExercise}
+              visible={showExerciseInstructions}
+              onClose={() => {
+                setShowExerciseInstructions(false);
+                setSelectedExercise(null);
+              }}
+              onStartExercise={handleStartExerciseFromInstructions}
+              onReplace={handleReplaceExercise}
+            />
+          )}
+        </LinearGradient>
+      </SafeAreaView>
 
       {/* Floating Chat with Bolt Button - Outside SafeAreaView */}
       <TouchableOpacity

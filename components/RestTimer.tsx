@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Modal, Dimensions } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { BlurView } from 'expo-blur';
 import { Play, Pause, RotateCcw, Clock } from 'lucide-react-native';
 import { useNotifications } from '@/hooks/useNotifications';
 import { useSettings } from '@/hooks/useSettings';
@@ -96,10 +97,18 @@ export default function RestTimer({
   };
 
   return (
+    <Modal
+      visible={isActive}
+      transparent={true}
+      animationType="fade"
+      statusBarTranslucent={true}
+    >
+      <BlurView intensity={15} style={styles.blurContainer}>
+        <View style={styles.overlay}>
     <View style={styles.container}>
       <LinearGradient colors={['#1A1A2E', '#0F0F23']} style={styles.gradient}>
         <View style={styles.header}>
-          <Clock size={20} color="#6B46C1" />
+                <Clock size={24} color="#6B46C1" />
           <Text style={styles.title}>Rest Timer</Text>
         </View>
 
@@ -200,38 +209,59 @@ export default function RestTimer({
         </View>
       </LinearGradient>
     </View>
+        </View>
+      </BlurView>
+    </Modal>
   );
 }
 
 const styles = StyleSheet.create({
+  blurContainer: {
+    flex: 1,
+  },
+  overlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+  },
   container: {
-    marginVertical: 20,
+    width: '90%',
+    maxWidth: 400,
   },
   gradient: {
-    borderRadius: 20,
-    padding: 24,
+    borderRadius: 24,
+    padding: 32,
     borderWidth: 1,
     borderColor: '#1A1A2E',
     alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 8,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    elevation: 15,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 24,
+    marginBottom: 32,
   },
   title: {
-    fontSize: 18,
-    fontWeight: '600',
+    fontSize: 20,
+    fontWeight: '700',
     color: '#FFFFFF',
-    marginLeft: 8,
+    marginLeft: 12,
   },
   timerContainer: {
-    marginBottom: 24,
+    marginBottom: 32,
   },
   circularProgress: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
+    width: 160,
+    height: 160,
+    borderRadius: 80,
     backgroundColor: '#0F0F23',
     justifyContent: 'center',
     alignItems: 'center',
@@ -241,10 +271,10 @@ const styles = StyleSheet.create({
   },
   progressRing: {
     position: 'absolute',
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    borderWidth: 4,
+    width: 160,
+    height: 160,
+    borderRadius: 80,
+    borderWidth: 6,
     borderTopColor: 'transparent',
     borderRightColor: 'transparent',
     borderBottomColor: 'transparent',
@@ -253,12 +283,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   timeText: {
-    fontSize: 24,
-    fontWeight: '700',
+    fontSize: 36,
+    fontWeight: '800',
     marginBottom: 4,
   },
   timeLabel: {
-    fontSize: 12,
+    fontSize: 14,
     color: '#94A3B8',
   },
   progressBarContainer: {

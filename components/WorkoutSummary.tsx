@@ -191,10 +191,6 @@ export default function WorkoutSummary({
                 <Text style={styles.saveButtonText}>Save Workout</Text>
               </LinearGradient>
             </TouchableOpacity>
-
-            <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-              <Text style={styles.closeButtonText}>Close</Text>
-            </TouchableOpacity>
           </View>
         </ScrollView>
       </LinearGradient>
@@ -215,7 +211,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: 20,
-    paddingTop: 40,
+    paddingTop: 80,
     paddingBottom: 30,
   },
   header: {
@@ -382,14 +378,5 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#FFFFFF',
     marginLeft: 8,
-  },
-  closeButton: {
-    paddingVertical: 16,
-    alignItems: 'center',
-  },
-  closeButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#6B46C1',
   },
 });

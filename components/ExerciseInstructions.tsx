@@ -22,67 +22,13 @@ import {
   Settings,
 } from 'lucide-react-native';
 import { Exercise } from '@/types/workout';
+import { getExerciseImage as getExerciseImageFromRegistry } from '@/data/availableExercises';
 
 const { width } = Dimensions.get('window');
 
-// Helper function to get exercise image
-const getExerciseImage = (
-  exerciseId: string,
-  imageType: 'demonstration' | 'start' | 'end' = 'demonstration'
-) => {
-  try {
-    // Convert exercise ID to folder name (match the folder structure)
-    const folderMap: { [key: string]: string } = {
-      '34-situp': '3_4_Sit-Up',
-      'barbell-bench-press': 'Barbell_Bench_Press_-_Medium_Grip',
-      'barbell-bench-press-medium-grip': 'Barbell_Bench_Press_-_Medium_Grip',
-      'dumbbell-bent-over-row': 'Bent_Over_Two-Dumbbell_Row',
-      'bent-over-two-dumbbell-row': 'Bent_Over_Two-Dumbbell_Row',
-      'barbell-curl': 'Barbell_Curl',
-      'dumbbell-fly': 'Bent-Arm_Dumbbell_Pullover', // Using similar exercise as fallback
-      pushups: 'Push-ups', // This might not exist, will fall back to placeholder
-      'body-up': 'Body-Up',
-      bodyup: 'Body-Up',
-      'good-morning': 'Good_Morning',
-      'jogging-treadmill': 'Jogging,_Treadmill',
-      situp: 'Sit-Up',
-      'sit-up': 'Sit-Up',
-    };
-
-    const folderName = folderMap[exerciseId] || exerciseId;
-
-    // Determine which image to load based on type
-    const imageIndex = imageType === 'start' ? '0' : '1';
-
-    // Try to require the image based on the folder structure
-    switch (folderName) {
-      case '3_4_Sit-Up':
-        return imageType === 'start'
-          ? require('@/assets/images/exercises/3_4_Sit-Up/images/0.jpg')
-          : require('@/assets/images/exercises/3_4_Sit-Up/images/1.jpg');
-      case 'Barbell_Bench_Press_-_Medium_Grip':
-        return imageType === 'start'
-          ? require('@/assets/images/exercises/Barbell_Bench_Press_-_Medium_Grip/images/0.jpg')
-          : require('@/assets/images/exercises/Barbell_Bench_Press_-_Medium_Grip/images/1.jpg');
-      case 'Bent_Over_Two-Dumbbell_Row':
-        return imageType === 'start'
-          ? require('@/assets/images/exercises/Bent_Over_Two-Dumbbell_Row/images/0.jpg')
-          : require('@/assets/images/exercises/Bent_Over_Two-Dumbbell_Row/images/1.jpg');
-      case 'Barbell_Curl':
-        return imageType === 'start'
-          ? require('@/assets/images/exercises/Barbell_Curl/images/0.jpg')
-          : require('@/assets/images/exercises/Barbell_Curl/images/1.jpg');
-      case 'Body-Up':
-        return imageType === 'start'
-          ? require('@/assets/images/exercises/Body-Up/images/0.jpg')
-          : require('@/assets/images/exercises/Body-Up/images/1.jpg');
-      default:
-        return null;
-    }
-  } catch (error) {
-    console.log('Error loading exercise image:', error);
-    return null;
-  }
+// Helper function to get exercise image using the registry
+const getExerciseImage = (exerciseName: string) => {
+  return getExerciseImageFromRegistry(exerciseName);
 };
 
 interface ExerciseInstructionsProps {
@@ -139,7 +85,7 @@ export default function ExerciseInstructions({
 
   const renderInstructionsList = (
     title: string,
-    instructions: string[],
+    instructions: string[] | undefined,
     icon: any
   ) => {
     if (!instructions || instructions.length === 0) return null;
@@ -201,7 +147,7 @@ export default function ExerciseInstructions({
   };
 
   const getCurrentImage = () => {
-    return getExerciseImage(exercise.id, selectedImageType);
+    return getExerciseImage(exercise.name);
   };
 
   return (
@@ -302,7 +248,7 @@ export default function ExerciseInstructions({
               <View style={styles.imageContainer}>
                 {!imageError && getCurrentImage() ? (
                   <Image
-                    source={{ uri: getCurrentImage() }}
+                    source={getCurrentImage()}
                     style={styles.exerciseImage}
                     onError={handleImageError}
                     resizeMode="contain"

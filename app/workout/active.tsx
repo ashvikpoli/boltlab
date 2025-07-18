@@ -34,6 +34,7 @@ import {
   useSupabaseGamification,
   calculateWorkoutXP,
 } from '@/hooks/useSupabaseGamification';
+import { useMuscleFatigue } from '@/hooks/useMuscleFatigue';
 import { useAuth } from '@/hooks/useAuth';
 
 // Extended Exercise interface for AI-generated workouts
@@ -48,7 +49,8 @@ export default function ActiveWorkoutScreen() {
   const params = useLocalSearchParams();
   const { saveWorkout } = useSupabaseWorkouts();
   const { completeWorkout } = useSupabaseGamification();
-  const { loadProfile, user } = useAuth();
+  const { processWorkoutFatigue } = useMuscleFatigue();
+  const { loadProfile, user, loadOnboardingData } = useAuth();
 
   const [activeWorkout, setActiveWorkout] = useState<ActiveWorkout | null>(
     null
@@ -63,6 +65,20 @@ export default function ActiveWorkoutScreen() {
   const [generatedWorkoutData, setGeneratedWorkoutData] = useState<any>(null); // Store original generated workout data
   const [showFullOverview, setShowFullOverview] = useState(false); // State for full overview visibility
   const [showBoltChat, setShowBoltChat] = useState(false);
+  const [onboardingData, setOnboardingData] = useState<any>(null);
+
+  // Load user onboarding data for preferences
+  useEffect(() => {
+    if (user) {
+      loadOnboardingData()
+        .then(({ data }) => {
+          setOnboardingData(data);
+        })
+        .catch((error) => {
+          console.error('Error loading onboarding data:', error);
+        });
+    }
+  }, [user]);
 
   useEffect(() => {
     if (params.exerciseId) {
@@ -85,8 +101,9 @@ export default function ActiveWorkoutScreen() {
         name: ex.name,
         muscleGroup: ex.muscleGroup,
         equipment: ex.equipment,
-        description: ex.instructions,
+        description: ex.description || 'No description available',
         category: 'strength' as const,
+        instructions: ex.instructions,
         // Store the generated parameters for this exercise
         generatedSets: ex.sets,
         generatedReps: ex.reps,
@@ -236,6 +253,14 @@ export default function ActiveWorkoutScreen() {
           completedWorkout.exercises.map((ex) => ex.id),
           completedWorkout.duration,
           completedWorkout.totalSets
+        );
+
+        // Process muscle fatigue based on workout
+        await processWorkoutFatigue(
+          completedWorkout.exercises.map((ex) => ex.id),
+          completedWorkout.exercises.map((ex) => ex.name),
+          completedWorkout.totalSets,
+          completedWorkout.duration
         );
 
         console.log('Workout saved and XP awarded:', result);
@@ -484,17 +509,7 @@ export default function ActiveWorkoutScreen() {
                 generatedWeight={
                   (currentExercise as GeneratedExercise).generatedWeight
                 }
-              />
-            </View>
-          )}
-
-          {/* Rest Timer */}
-          {isResting && (
-            <View style={styles.restTimerSection}>
-              <RestTimer
-                onComplete={completeRest}
-                onSkip={skipRest}
-                isActive={true}
+                preferredUnits={onboardingData?.preferred_units || 'imperial'}
               />
             </View>
           )}
@@ -761,6 +776,13 @@ export default function ActiveWorkoutScreen() {
           onClose={() => setShowBoltChat(false)}
           currentWorkout={generatedWorkoutData}
           onWorkoutModified={handleWorkoutModified}
+        />
+
+        {/* Rest Timer Modal */}
+        <RestTimer
+          onComplete={completeRest}
+          onSkip={skipRest}
+          isActive={isResting}
         />
       </LinearGradient>
     </SafeAreaView>
@@ -1101,9 +1123,7 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     marginLeft: 8,
   },
-  restTimerSection: {
-    marginBottom: 20,
-  },
+
   chatButton: {
     position: 'absolute',
     bottom: 20,

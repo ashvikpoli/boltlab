@@ -1,4 +1,5 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { availableExercises } from '../data/availableExercises';
 
 // Get API key from environment variables
 const API_KEY = process.env.EXPO_PUBLIC_GEMINI_API_KEY;
@@ -33,6 +34,10 @@ interface UserContext {
   limitationsOther?: string;
   motivationStyle: string[];
   workoutStyle: string[];
+
+  // Daily workout specific
+  isDailyWorkout?: boolean;
+  estimatedDuration?: number;
 }
 
 interface GeneratedExercise {
@@ -124,6 +129,17 @@ ${
 }
 - Motivation Style: ${motivationText}
 - Preferred Workout Style: ${workoutStyleText}
+${
+  userContext.isDailyWorkout
+    ? `
+**DAILY WORKOUT CONTEXT:**
+- This is an automatically generated daily workout
+- Target Duration: ${userContext.estimatedDuration || 30} minutes
+- Focus on the selected muscle groups: ${muscleText}
+- Create a balanced routine suitable for daily training
+- Ensure appropriate intensity for sustainable daily practice`
+    : ''
+}
 
 **CRITICAL EQUIPMENT REQUIREMENTS:**
 ${
@@ -152,9 +168,9 @@ ${
 }
 
 **Time Optimization:**
-- Available time: ${userContext.timeAvailability}
+- Target workout duration: ${userContext.estimatedDuration ? userContext.estimatedDuration + ' minutes' : 'flexible'}
 - Adjust workout intensity and volume accordingly
-- For limited time, focus on compound movements and supersets
+- For shorter durations, focus on compound movements and supersets
 
 **Motivation & Style Preferences:**
 ${
@@ -170,18 +186,24 @@ ${
     : ''
 }
 
+**CRITICAL EXERCISE REQUIREMENTS:**
+ONLY use exercises from this exact list (these are the only exercises we have images and instructions for).
+Use the EXACT names as listed below (including underscores and special characters):
+${availableExercises.map(exercise => `- ${exercise}`).join('\n')}
+
 **Requirements:**
 1. Generate 4-7 exercises targeting the specified muscle groups
-2. STRICTLY use only the available equipment listed above
-3. RESPECT all physical limitations and provide modifications if needed
-4. Adjust intensity and duration based on experience level and time availability:
+2. STRICTLY use only exercises from the available exercise list above
+3. STRICTLY use only the available equipment listed above
+4. RESPECT all physical limitations and provide modifications if needed
+5. Adjust intensity and duration based on experience level and time availability:
    - Beginner: Higher reps (8-15), lower weight, focus on form and safety
    - Intermediate: Moderate reps (6-12), moderate weight, balanced challenge
    - Advanced: Lower reps (3-8), higher weight, more complex movements
-5. Include sets, reps, and suggested weight (set weight to 0 for bodyweight exercises)
-6. Provide detailed form instructions and safety cues for each exercise
-7. Consider user's workout frequency for appropriate volume
-8. Align with user's motivational style and workout preferences
+6. Include sets, reps, and suggested weight (set weight to 0 for bodyweight exercises)
+7. Provide detailed form instructions and safety cues for each exercise
+8. Consider user's workout frequency for appropriate volume
+9. Align with user's motivational style and workout preferences
 
 **Response Format (JSON):**
 {
@@ -218,7 +240,12 @@ Generate a safe, effective, and highly personalized workout that respects the us
         throw new Error('No JSON found in response');
       }
 
-      const workoutData = JSON.parse(jsonMatch[0]);
+      let jsonString = jsonMatch[0];
+
+      // Clean up common invalid JSON patterns from AI responses
+      jsonString = this.sanitizeJsonString(jsonString);
+
+      const workoutData = JSON.parse(jsonString);
 
       return {
         id: 'gemini-' + Date.now(),
@@ -227,16 +254,18 @@ Generate a safe, effective, and highly personalized workout that respects the us
           `${userContext.targetMuscles.join(' & ')} Workout`,
         exercises: workoutData.exercises.map((ex: any, index: number) => ({
           id: `exercise-${index}`,
-          name: ex.name,
-          sets: ex.sets || 3,
-          reps: ex.reps || 10,
-          weight: ex.weight || 0,
-          equipment: ex.equipment || 'none',
-          muscleGroup: ex.muscleGroup || userContext.targetMuscles[0],
-          instructions: ex.instructions || 'Perform with proper form',
-          difficulty: ex.difficulty || userContext.experienceLevel,
+          name: this.normalizeExerciseName(String(ex.name || `Exercise_${index + 1}`)),
+          sets: this.parseNumberValue(ex.sets) || 3,
+          reps: this.parseNumberValue(ex.reps) || 10,
+          weight: this.parseNumberValue(ex.weight) || 0,
+          equipment: String(ex.equipment || 'none'),
+          muscleGroup: String(ex.muscleGroup || userContext.targetMuscles[0] || 'general'),
+          instructions: String(ex.instructions || 'Perform with proper form'),
+          difficulty: String(ex.difficulty || userContext.experienceLevel || 'beginner'),
+          category: String(ex.muscleGroup || userContext.targetMuscles[0] || 'general'),
+          description: String(ex.instructions || 'Perform exercise with proper form'),
         })),
-        estimatedDuration: workoutData.estimatedDuration || 45,
+        estimatedDuration: this.parseNumberValue(workoutData.estimatedDuration) || 45,
         difficulty: workoutData.difficulty || userContext.experienceLevel,
         targetMuscles: userContext.targetMuscles,
         notes:
@@ -244,8 +273,82 @@ Generate a safe, effective, and highly personalized workout that respects the us
       };
     } catch (error) {
       console.error('Error parsing Gemini response:', error);
+      console.log('Raw response that failed to parse:', response);
       return this.generateMockWorkout(userContext);
     }
+  }
+
+  private sanitizeJsonString(jsonString: string): string {
+    // Fix common AI-generated JSON issues
+    
+    // Replace range values like "8-12" with the middle value (handle both quoted and unquoted)
+    jsonString = jsonString.replace(/"reps":\s*"?(\d+)-(\d+)"?/g, (match, min, max) => {
+      const middle = Math.round((parseInt(min) + parseInt(max)) / 2);
+      return `"reps": ${middle}`;
+    });
+
+    // Handle ranges with additional text like "10-15 per arm"
+    jsonString = jsonString.replace(/"reps":\s*"?(\d+)-(\d+)[^,}]*"?/g, (match, min, max) => {
+      const middle = Math.round((parseInt(min) + parseInt(max)) / 2);
+      return `"reps": ${middle}`;
+    });
+
+    // Replace complex reps descriptions with sensible numbers (handle unquoted values)
+    jsonString = jsonString.replace(/"reps":\s*as_many_as_possible[^,}]*/gi, '"reps": 10');
+    jsonString = jsonString.replace(/"reps":\s*"?as_many_as_possible.*?"?/gi, '"reps": 10');
+    jsonString = jsonString.replace(/"reps":\s*"?AMRAP.*?"?/gi, '"reps": 10');
+    jsonString = jsonString.replace(/"reps":\s*"?to failure.*?"?/gi, '"reps": 12');
+    jsonString = jsonString.replace(/"reps":\s*"?max.*?"?/gi, '"reps": 8');
+
+    // Fix any other range patterns for sets or weight (handle both quoted and unquoted)
+    jsonString = jsonString.replace(/"sets":\s*"?(\d+)-(\d+)"?/g, (match, min, max) => {
+      const middle = Math.round((parseInt(min) + parseInt(max)) / 2);
+      return `"sets": ${middle}`;
+    });
+
+    jsonString = jsonString.replace(/"weight":\s*"?(\d+)-(\d+)"?/g, (match, min, max) => {
+      const middle = Math.round((parseInt(min) + parseInt(max)) / 2);
+      return `"weight": ${middle}`;
+    });
+
+    // Remove any trailing commas before closing braces/brackets
+    jsonString = jsonString.replace(/,(\s*[}\]])/g, '$1');
+
+    return jsonString;
+  }
+
+  private parseNumberValue(value: any): number {
+    if (typeof value === 'number') return value;
+    if (typeof value === 'string') {
+      // Handle ranges like "8-12"
+      const rangeMatch = value.match(/(\d+)-(\d+)/);
+      if (rangeMatch) {
+        const min = parseInt(rangeMatch[1]);
+        const max = parseInt(rangeMatch[2]);
+        return Math.round((min + max) / 2);
+      }
+      
+      // Extract first number from string
+      const numberMatch = value.match(/\d+/);
+      if (numberMatch) {
+        return parseInt(numberMatch[0]);
+      }
+    }
+    return 0;
+  }
+
+  private normalizeExerciseName(name: string): string {
+    if (!name || typeof name !== 'string') {
+      return 'Unknown_Exercise';
+    }
+    
+    // Replace spaces with underscores and clean up the name
+    return name
+      .trim()
+      .replace(/\s+/g, '_') // Replace one or more spaces with underscore
+      .replace(/[^a-zA-Z0-9_-]/g, '') // Remove special characters except underscore and dash
+      .replace(/_+/g, '_') // Replace multiple underscores with single underscore
+      .replace(/^_|_$/g, ''); // Remove leading/trailing underscores
   }
 
   private generateMockWorkout(userContext: UserContext): GeneratedWorkout {
@@ -255,14 +358,14 @@ Generate a safe, effective, and highly personalized workout that respects the us
     const exerciseDatabase: { [key: string]: any[] } = {
       chest: [
         {
-          name: 'Push-ups',
+          name: 'Push_ups',
           sets: 3,
           reps: userContext.experienceLevel === 'beginner' ? 8 : 12,
           equipment: 'none',
           instructions: 'Keep body straight, lower chest to ground, push up',
         },
         {
-          name: 'Barbell Bench Press',
+          name: 'Barbell_Bench_Press_Medium_Grip',
           sets: 3,
           reps: userContext.experienceLevel === 'beginner' ? 8 : 5,
           weight: userContext.experienceLevel === 'beginner' ? 95 : 135,
@@ -272,14 +375,14 @@ Generate a safe, effective, and highly personalized workout that respects the us
       ],
       back: [
         {
-          name: 'Pull-ups',
+          name: 'Pull_ups',
           sets: 3,
           reps: userContext.experienceLevel === 'beginner' ? 5 : 8,
           equipment: 'pull-up-bar',
           instructions: 'Hang from bar, pull chin over bar, lower with control',
         },
         {
-          name: 'Dumbbell Rows',
+          name: 'Bent_Over_Two_Dumbbell_Row',
           sets: 3,
           reps: 10,
           weight: userContext.experienceLevel === 'beginner' ? 25 : 40,
@@ -290,7 +393,7 @@ Generate a safe, effective, and highly personalized workout that respects the us
       ],
       legs: [
         {
-          name: 'Bodyweight Squats',
+          name: 'Bodyweight_Squat',
           sets: 3,
           reps: userContext.experienceLevel === 'beginner' ? 12 : 15,
           equipment: 'none',
@@ -298,7 +401,7 @@ Generate a safe, effective, and highly personalized workout that respects the us
             'Stand tall, sit back and down, drive through heels to stand',
         },
         {
-          name: 'Barbell Squats',
+          name: 'Barbell_Full_Squat',
           sets: 3,
           reps: userContext.experienceLevel === 'beginner' ? 8 : 5,
           weight: userContext.experienceLevel === 'beginner' ? 95 : 155,
@@ -309,7 +412,7 @@ Generate a safe, effective, and highly personalized workout that respects the us
       ],
       shoulders: [
         {
-          name: 'Shoulder Press',
+          name: 'Barbell_Shoulder_Press',
           sets: 3,
           reps: 10,
           weight: userContext.experienceLevel === 'beginner' ? 20 : 35,
@@ -319,7 +422,7 @@ Generate a safe, effective, and highly personalized workout that respects the us
       ],
       biceps: [
         {
-          name: 'Bicep Curls',
+          name: 'Barbell_Curl',
           sets: 3,
           reps: 12,
           weight: userContext.experienceLevel === 'beginner' ? 15 : 25,
@@ -329,7 +432,7 @@ Generate a safe, effective, and highly personalized workout that respects the us
       ],
       triceps: [
         {
-          name: 'Tricep Dips',
+          name: 'Bench_Dips',
           sets: 3,
           reps: userContext.experienceLevel === 'beginner' ? 8 : 12,
           equipment: 'none',
@@ -392,7 +495,7 @@ Generate a safe, effective, and highly personalized workout that respects the us
 
         exercises.push({
           id: `mock-${muscle}`,
-          name: exercise.name,
+          name: this.normalizeExerciseName(exercise.name),
           sets: exercise.sets,
           reps: exercise.reps,
           weight: exercise.weight || 0,
@@ -674,6 +777,9 @@ Return ONLY this exact JSON structure (no other text):
         if (firstBrace !== -1 && lastBrace !== -1) {
           jsonText = jsonText.substring(firstBrace, lastBrace + 1);
         }
+
+        // Clean up invalid JSON patterns before parsing
+        jsonText = this.sanitizeJsonString(jsonText);
 
         const modifiedWorkout = JSON.parse(jsonText);
 

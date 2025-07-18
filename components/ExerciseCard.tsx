@@ -19,6 +19,9 @@ import {
   MoreHorizontal,
 } from 'lucide-react-native';
 import { Exercise } from '@/types/workout';
+import {
+  getExerciseImage as getExerciseImageFromRegistry,
+} from '@/data/availableExercises';
 
 interface ExerciseCardProps {
   exercise: Exercise;
@@ -58,49 +61,9 @@ const getCategoryColor = (category: string | undefined) => {
   }
 };
 
-// Helper function to get exercise image
-const getExerciseImage = (exerciseId: string) => {
-  try {
-    // Convert exercise ID to folder name (match the folder structure)
-    const folderMap: { [key: string]: string } = {
-      '34-situp': '3_4_Sit-Up',
-      'barbell-bench-press': 'Barbell_Bench_Press_-_Medium_Grip',
-      'barbell-bench-press-medium-grip': 'Barbell_Bench_Press_-_Medium_Grip',
-      'dumbbell-bent-over-row': 'Bent_Over_Two-Dumbbell_Row',
-      'bent-over-two-dumbbell-row': 'Bent_Over_Two-Dumbbell_Row',
-      'barbell-curl': 'Barbell_Curl',
-      'dumbbell-fly': 'Bent-Arm_Dumbbell_Pullover', // Using similar exercise as fallback
-      pushups: 'Push-ups', // This might not exist, will fall back to placeholder
-      'body-up': 'Body-Up',
-      bodyup: 'Body-Up',
-      'good-morning': 'Good_Morning',
-      'jogging-treadmill': 'Jogging,_Treadmill',
-      situp: 'Sit-Up',
-      'sit-up': 'Sit-Up',
-    };
-
-    const folderName = folderMap[exerciseId] || exerciseId;
-
-    // Try to require the image based on the folder structure
-    // This is a simplified approach - in a real app, you'd have a more robust mapping
-    switch (folderName) {
-      case '3_4_Sit-Up':
-        return require('@/assets/images/exercises/3_4_Sit-Up/images/0.jpg');
-      case 'Barbell_Bench_Press_-_Medium_Grip':
-        return require('@/assets/images/exercises/Barbell_Bench_Press_-_Medium_Grip/images/0.jpg');
-      case 'Bent_Over_Two-Dumbbell_Row':
-        return require('@/assets/images/exercises/Bent_Over_Two-Dumbbell_Row/images/0.jpg');
-      case 'Barbell_Curl':
-        return require('@/assets/images/exercises/Barbell_Curl/images/0.jpg');
-      case 'Body-Up':
-        return require('@/assets/images/exercises/Body-Up/images/0.jpg');
-      default:
-        return null;
-    }
-  } catch (error) {
-    console.log('Error loading exercise image:', error);
-    return null;
-  }
+// Helper function to get exercise image using the registry
+const getExerciseImage = (exerciseName: string) => {
+  return getExerciseImageFromRegistry(exerciseName);
 };
 
 export default function ExerciseCard({
@@ -112,7 +75,6 @@ export default function ExerciseCard({
   const [imageError, setImageError] = useState(false);
   const categoryColor = getCategoryColor(exercise.category);
   const MuscleIcon = getMuscleGroupIcon(exercise.muscleGroup);
-  const exerciseImage = getExerciseImage(exercise.id);
 
   const handleImageError = () => {
     setImageError(true);
@@ -122,61 +84,121 @@ export default function ExerciseCard({
     if (onShowDetails) {
       onShowDetails(exercise);
     } else {
-      // Show basic instructions in an alert if no custom handler
-      const setupInstructions =
-        exercise.instructions?.setup?.slice(0, 3).join('\n• ') ||
-        'No instructions available';
-      Alert.alert(`${exercise.name} Instructions`, `• ${setupInstructions}`, [
-        { text: 'Got it!' },
-      ]);
+      Alert.alert(
+        String(exercise.name || 'Exercise'),
+        exercise.instructions?.setup?.join('\n') ||
+          String(exercise.description || 'No instructions available'),
+        [{ text: 'OK' }]
+      );
     }
   };
 
+  // Get the exercise image
+  const exerciseImage = getExerciseImage(exercise.name);
+
   return (
     <View style={styles.card}>
-      <LinearGradient
-        colors={['#1A1A2E', '#0F0F23']}
-        style={styles.cardGradient}
-      >
-        {/* Exercise Image */}
+      <LinearGradient colors={['#1A1A2E', '#0F0F23']} style={styles.gradient}>
+        <View style={styles.header}>
         <View style={styles.imageContainer}>
           {!imageError && exerciseImage ? (
             <Image
               source={exerciseImage}
               style={styles.exerciseImage}
+                resizeMode="cover"
               onError={handleImageError}
-              resizeMode="cover"
             />
           ) : (
             <View
               style={[
-                styles.imagePlaceholder,
+                  styles.placeholderImage,
                 { backgroundColor: categoryColor + '20' },
               ]}
             >
-              <MuscleIcon size={24} color={categoryColor} />
+                <MuscleIcon size={32} color={categoryColor} />
+              </View>
+            )}
+            <View
+              style={[styles.categoryBadge, { backgroundColor: categoryColor }]}
+            >
+              <Text style={styles.categoryText}>{String(exercise.category || 'General')}</Text>
+            </View>
+          </View>
+
+          <View style={styles.content}>
+            <View style={styles.mainInfo}>
+              <Text style={styles.name} numberOfLines={2}>
+                {String(exercise.name || 'Exercise')}
+              </Text>
+              <Text style={styles.muscleGroup}>{String(exercise.muscleGroup || 'Unknown')}</Text>
+
+              {showFullDetails && (
+                <View style={styles.details}>
+                  <View style={styles.detailRow}>
+                    <Text style={styles.detailLabel}>Equipment:</Text>
+                    <Text style={styles.detailValue}>{String(exercise.equipment || 'None')}</Text>
+                  </View>
+                  <View style={styles.detailRow}>
+                    <Text style={styles.detailLabel}>Difficulty:</Text>
+                    <View style={styles.difficultyContainer}>
+                      <Text
+                        style={[
+                          styles.difficultyText,
+                          { color: categoryColor },
+                        ]}
+                      >
+                        {String(exercise.difficulty || 'Beginner')}
+                      </Text>
+                    </View>
+                  </View>
+                  {exercise.sets && (
+                    <View style={styles.detailRow}>
+                      <Text style={styles.detailLabel}>Sets:</Text>
+                      <Text style={styles.detailValue}>{String(exercise.sets)}</Text>
+                    </View>
+                  )}
+                  {exercise.reps && (
+                    <View style={styles.detailRow}>
+                      <Text style={styles.detailLabel}>Reps:</Text>
+                      <Text style={styles.detailValue}>{String(exercise.reps)}</Text>
+                    </View>
+                  )}
+                  {exercise.weight && exercise.weight > 0 && (
+                    <View style={styles.detailRow}>
+                      <Text style={styles.detailLabel}>Weight:</Text>
+                      <Text style={styles.detailValue}>
+                        {String(exercise.weight)} lbs
+                      </Text>
+                    </View>
+                  )}
             </View>
           )}
+            </View>
 
-          {/* Muscle Group Icon Overlay */}
-          <View style={styles.muscleIconOverlay}>
-            <MuscleIcon size={20} color="#FFFFFF" />
+            <View style={styles.actions}>
+              <TouchableOpacity
+                style={styles.actionButton}
+                onPress={showInstructions}
+              >
+                <Info size={20} color="#94A3B8" />
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.startButton, { backgroundColor: categoryColor }]}
+                onPress={() => onStart(exercise)}
+              >
+                <Play size={16} color="#FFFFFF" />
+                <Text style={styles.startButtonText}>Start</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
 
-        {/* Exercise Info */}
-        <View style={styles.exerciseInfo}>
-          <Text style={styles.exerciseName}>{exercise.name}</Text>
-          <Text style={styles.exerciseDetails}>
-            {exercise.sets || 3} sets • {exercise.reps || 8} reps •{' '}
-            {exercise.weight || 0} lb
-          </Text>
+        {showFullDetails && exercise.description && (
+          <View style={styles.description}>
+            <Text style={styles.descriptionText}>{String(exercise.description)}</Text>
         </View>
-
-        {/* More Options */}
-        <TouchableOpacity style={styles.moreButton} onPress={showInstructions}>
-          <MoreHorizontal size={20} color="#94A3B8" />
-        </TouchableOpacity>
+        )}
       </LinearGradient>
     </View>
   );
@@ -189,17 +211,20 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     overflow: 'hidden',
   },
-  cardGradient: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
+  gradient: {
+    flexDirection: 'column',
+    padding: 16,
     gap: 16,
   },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
   imageContainer: {
-    width: 60,
-    height: 60,
-    borderRadius: 12,
+    width: 80,
+    height: 80,
+    borderRadius: 20,
     overflow: 'hidden',
     position: 'relative',
   },
@@ -207,40 +232,105 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
   },
-  imagePlaceholder: {
+  placeholderImage: {
     width: '100%',
     height: '100%',
     justifyContent: 'center',
     alignItems: 'center',
-    borderRadius: 12,
+    borderRadius: 20,
   },
-  muscleIconOverlay: {
+  categoryBadge: {
     position: 'absolute',
-    bottom: 4,
-    left: 4,
-    width: 24,
-    height: 24,
+    top: 8,
+    right: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
     borderRadius: 12,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
-    justifyContent: 'center',
     alignItems: 'center',
-  },
-  exerciseInfo: {
-    flex: 1,
     justifyContent: 'center',
   },
-  exerciseName: {
-    fontSize: 18,
+  categoryText: {
+    color: '#FFFFFF',
+    fontSize: 12,
     fontWeight: '600',
+  },
+  content: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 12,
+  },
+  mainInfo: {
+    flex: 1,
+  },
+  name: {
+    fontSize: 20,
+    fontWeight: '700',
     color: '#FFFFFF',
     marginBottom: 4,
   },
-  exerciseDetails: {
+  muscleGroup: {
     fontSize: 14,
     color: '#94A3B8',
     fontWeight: '400',
   },
-  moreButton: {
+  details: {
+    marginTop: 8,
+  },
+  detailRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 4,
+  },
+  detailLabel: {
+    fontSize: 13,
+    color: '#94A3B8',
+    fontWeight: '400',
+  },
+  detailValue: {
+    fontSize: 13,
+    color: '#FFFFFF',
+    fontWeight: '500',
+  },
+  difficultyContainer: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    backgroundColor: '#26263F',
+  },
+  difficultyText: {
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  actions: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  actionButton: {
     padding: 8,
+  },
+  startButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 12,
+    gap: 8,
+  },
+  startButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  description: {
+    marginTop: 16,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#33334D',
+  },
+  descriptionText: {
+    fontSize: 14,
+    color: '#94A3B8',
+    lineHeight: 22,
   },
 });
