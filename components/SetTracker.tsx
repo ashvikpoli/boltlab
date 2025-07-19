@@ -8,6 +8,7 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Check, Plus, Minus } from 'lucide-react-native';
+import GestureRepCounter from './GestureRepCounter';
 import { WorkoutSet } from '@/types/workout';
 
 interface SetTrackerProps {
@@ -51,6 +52,8 @@ export default function SetTracker({
   });
 
   const [duration, setDuration] = useState('');
+  const [useGestureCounter, setUseGestureCounter] = useState(false);
+  const [currentReps, setCurrentReps] = useState(0);
 
   // Check if this exercise requires weight (not bodyweight)
   const requiresWeight = () => {
@@ -126,7 +129,17 @@ export default function SetTracker({
     <View style={styles.container}>
       <LinearGradient colors={['#1A1A2E', '#0F0F23']} style={styles.gradient}>
         <View style={styles.header}>
-          <Text style={styles.setTitle}>Set {setNumber}</Text>
+          <View style={styles.headerTop}>
+            <Text style={styles.setTitle}>Set {setNumber}</Text>
+            <TouchableOpacity
+              style={styles.toggleButton}
+              onPress={() => setUseGestureCounter(!useGestureCounter)}
+            >
+              <Text style={styles.toggleButtonText}>
+                {useGestureCounter ? '📱' : '⚡'} {useGestureCounter ? 'Manual' : 'Gesture'}
+              </Text>
+            </TouchableOpacity>
+          </View>
           {previousSet && (
             <Text style={styles.previousSet}>
               Previous: {requiresWeight() ? `${previousSet.weight}${weightUnit} × ` : ''}
@@ -173,48 +186,67 @@ export default function SetTracker({
             </View>
           )}
 
-          <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>
-              {exerciseType === 'strength' ? 'Reps' : 'Duration (min)'}
-            </Text>
-            <View style={styles.inputRow}>
-              <TouchableOpacity
-                style={styles.adjustButton}
-                onPress={() => adjustReps(-1)}
-              >
-                <Minus size={16} color="#6B46C1" />
-              </TouchableOpacity>
-              <TextInput
-                style={styles.input}
-                value={reps}
-                onChangeText={handleRepsChange}
-                placeholder="0"
-                placeholderTextColor="#64748B"
-                keyboardType="numeric"
-              />
-              <TouchableOpacity
-                style={styles.adjustButton}
-                onPress={() => adjustReps(1)}
-              >
-                <Plus size={16} color="#6B46C1" />
-              </TouchableOpacity>
+          {useGestureCounter && exerciseType === 'strength' ? (
+            <GestureRepCounter
+              currentReps={currentReps}
+              targetReps={generatedReps || parseInt(reps) || 10}
+              onRepsChange={(newReps) => {
+                setCurrentReps(newReps);
+                setReps(newReps.toString());
+              }}
+              onComplete={() => {
+                setReps(currentReps.toString());
+                handleCompleteSet();
+              }}
+              exerciseName={exerciseData?.name || 'Exercise'}
+              showAIFeedback={true}
+            />
+          ) : (
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>
+                {exerciseType === 'strength' ? 'Reps' : 'Duration (min)'}
+              </Text>
+              <View style={styles.inputRow}>
+                <TouchableOpacity
+                  style={styles.adjustButton}
+                  onPress={() => adjustReps(-1)}
+                >
+                  <Minus size={16} color="#6B46C1" />
+                </TouchableOpacity>
+                <TextInput
+                  style={styles.input}
+                  value={reps}
+                  onChangeText={handleRepsChange}
+                  placeholder="0"
+                  placeholderTextColor="#64748B"
+                  keyboardType="numeric"
+                />
+                <TouchableOpacity
+                  style={styles.adjustButton}
+                  onPress={() => adjustReps(1)}
+                >
+                  <Plus size={16} color="#6B46C1" />
+                </TouchableOpacity>
+              </View>
             </View>
-          </View>
+          )}
         </View>
 
-        <TouchableOpacity
-          style={[styles.completeButton, !isValid() && styles.disabledButton]}
-          onPress={handleCompleteSet}
-          disabled={!isValid()}
-        >
-          <LinearGradient
-            colors={isValid() ? ['#6B46C1', '#8B5CF6'] : ['#64748B', '#475569']}
-            style={styles.completeButtonGradient}
+        {!useGestureCounter && (
+          <TouchableOpacity
+            style={[styles.completeButton, !isValid() && styles.disabledButton]}
+            onPress={handleCompleteSet}
+            disabled={!isValid()}
           >
-            <Check size={20} color="#FFFFFF" />
-            <Text style={styles.completeButtonText}>Complete Set</Text>
-          </LinearGradient>
-        </TouchableOpacity>
+            <LinearGradient
+              colors={isValid() ? ['#6B46C1', '#8B5CF6'] : ['#64748B', '#475569']}
+              style={styles.completeButtonGradient}
+            >
+              <Check size={20} color="#FFFFFF" />
+              <Text style={styles.completeButtonText}>Complete Set</Text>
+            </LinearGradient>
+          </TouchableOpacity>
+        )}
       </LinearGradient>
     </View>
   );
@@ -232,6 +264,25 @@ const styles = StyleSheet.create({
   },
   header: {
     marginBottom: 20,
+  },
+  headerTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  toggleButton: {
+    backgroundColor: 'rgba(107, 70, 193, 0.2)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#6B46C1',
+  },
+  toggleButtonText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#6B46C1',
   },
   setTitle: {
     fontSize: 18,

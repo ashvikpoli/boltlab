@@ -78,10 +78,10 @@ export const formatWeight = (
 
 // Convert between unit systems for database storage
 export const convertHeightToPreferred = (
+  targetUnits: 'metric' | 'imperial',
   heightFeet?: number,
   heightInches?: number,
-  heightCm?: number,
-  targetUnits: 'metric' | 'imperial'
+  heightCm?: number
 ): { heightFeet?: number; heightInches?: number; heightCm?: number } => {
   if (targetUnits === 'metric') {
     if (heightFeet && heightInches !== undefined) {
@@ -98,9 +98,9 @@ export const convertHeightToPreferred = (
 };
 
 export const convertWeightToPreferred = (
+  targetUnits: 'metric' | 'imperial',
   weightPounds?: number,
-  weightKg?: number,
-  targetUnits: 'metric' | 'imperial'
+  weightKg?: number
 ): { weightPounds?: number; weightKg?: number } => {
   if (targetUnits === 'metric') {
     if (weightPounds) {

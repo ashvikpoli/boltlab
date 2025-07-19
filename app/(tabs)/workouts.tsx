@@ -36,11 +36,13 @@ import {
   useMuscleFatigue,
   type MuscleGroup as MuscleGroupType,
 } from '@/hooks/useMuscleFatigue';
-import { geminiWorkoutGenerator, GeneratedWorkout } from '@/lib/gemini';
+import { geminiService, GeneratedWorkout } from '@/lib/gemini';
 import BoltChat from '@/components/BoltChat';
 import ExerciseInstructions from '@/components/ExerciseInstructions';
 import ExerciseCard from '@/components/ExerciseCard';
 import { exerciseLibrary } from '@/data/exercises';
+import { BoltCard } from '@/components/design-system/BoltCard';
+import { LightningButton } from '@/components/design-system/LightningButton';
 
 interface MuscleGroupDisplay {
   id: string;
@@ -519,9 +521,7 @@ export default function WorkoutsScreen() {
         console.log('✅ Using personalized preferences from onboarding data');
       }
 
-      const generatedWorkout = await geminiWorkoutGenerator.generateWorkout(
-        userContext
-      );
+      const generatedWorkout = await geminiService.generateWorkout(userContext);
 
       const workoutWithMuscles = {
         ...generatedWorkout,
@@ -656,43 +656,32 @@ export default function WorkoutsScreen() {
   };
 
   const renderMuscleGroup = (muscle: MuscleGroupDisplay, index: number) => (
-    <TouchableOpacity
+    <BoltCard
       key={muscle.id}
+      variant={selectedMuscles.includes(muscle.id) ? 'energy' : 'glass'}
       style={[
         styles.muscleCard,
-        selectedMuscles.includes(muscle.id) && styles.selectedMuscle,
+        ...(selectedMuscles.includes(muscle.id) ? [styles.selectedMuscle] : []),
       ]}
       onPress={() => toggleMuscleSelection(muscle.id)}
     >
-      <LinearGradient
-        colors={
-          selectedMuscles.includes(muscle.id)
-            ? [muscle.color, muscle.color + 'DD']
-            : ['#2A2A3E', '#1F1F2E']
-        }
-        style={styles.muscleCardGradient}
-      >
-        {/* Body part visualization */}
-        <View style={styles.muscleImageContainer}>
-          <Image
-            source={muscle.imageUrl}
-            style={styles.muscleImage}
-            resizeMode="contain"
+      {/* Body part visualization */}
+      <View style={styles.muscleImageContainer}>
+        <Image
+          source={muscle.imageUrl}
+          style={styles.muscleImage}
+          resizeMode="contain"
+        />
+        <View style={styles.muscleOverlay}>
+          <View
+            style={[styles.muscleHighlight, { backgroundColor: muscle.color }]}
           />
-          <View style={styles.muscleOverlay}>
-            <View
-              style={[
-                styles.muscleHighlight,
-                { backgroundColor: muscle.color },
-              ]}
-            />
-          </View>
         </View>
+      </View>
 
-        {/* Muscle name */}
-        <Text style={styles.muscleName}>{muscle.name}</Text>
-      </LinearGradient>
-    </TouchableOpacity>
+      {/* Muscle name */}
+      <Text style={styles.muscleName}>{muscle.name}</Text>
+    </BoltCard>
   );
 
   const renderTargetMuscle = (muscle: MuscleGroupDisplay, index: number) => (
@@ -760,12 +749,13 @@ export default function WorkoutsScreen() {
             <View style={styles.section}>
               <View style={styles.sectionHeader}>
                 <Text style={styles.sectionTitle}>Target muscles</Text>
-                <TouchableOpacity
-                  style={styles.addMuscleButton}
+                <LightningButton
+                  variant="ghost"
+                  size="small"
                   onPress={() => setShowMuscleSelectionModal(true)}
-                >
-                  <Plus size={20} color="#6B46C1" />
-                </TouchableOpacity>
+                  icon={<Plus size={20} color="#6B46C1" />}
+                  style={styles.addMuscleButton}
+                />
               </View>
 
               <ScrollView
@@ -789,18 +779,15 @@ export default function WorkoutsScreen() {
                   <Text style={styles.sectionTitle}>
                     {generatedWorkout.exercises.length} exercises
                   </Text>
-                  <TouchableOpacity
-                    style={styles.startWorkoutButton}
+                  <LightningButton
+                    variant="primary"
+                    size="small"
                     onPress={() => startWorkout(generatedWorkout)}
+                    icon={<Play size={16} color="#FFFFFF" />}
+                    style={styles.startWorkoutButton}
                   >
-                    <LinearGradient
-                      colors={['#6B46C1', '#8B5CF6']}
-                      style={styles.startWorkoutGradient}
-                    >
-                      <Play size={16} color="#FFFFFF" />
-                      <Text style={styles.startWorkoutText}>Start Workout</Text>
-                    </LinearGradient>
-                  </TouchableOpacity>
+                    Start Workout
+                  </LightningButton>
                 </View>
 
                 {generatedWorkout.exercises.map(renderExerciseCard)}
@@ -811,10 +798,7 @@ export default function WorkoutsScreen() {
           {/* Loading Overlay */}
           {isGenerating && (
             <View style={styles.loadingOverlay}>
-              <LinearGradient
-                colors={['#0F0F23', '#1A1A2E']}
-                style={styles.loadingBackground}
-              >
+              <BoltCard variant="glass" style={styles.loadingBackground}>
                 <View style={styles.loadingContainer}>
                   <ActivityIndicator size="large" color="#6B46C1" />
                   <Text style={styles.loadingTitle}>
@@ -836,7 +820,7 @@ export default function WorkoutsScreen() {
                     </Text>
                   </View>
                 </View>
-              </LinearGradient>
+              </BoltCard>
             </View>
           )}
 
@@ -847,19 +831,17 @@ export default function WorkoutsScreen() {
             presentationStyle="pageSheet"
           >
             <SafeAreaView style={styles.modalContainer}>
-              <LinearGradient
-                colors={['#0F0F23', '#1A1A2E']}
-                style={styles.modalBackground}
-              >
+              <BoltCard variant="glass" style={styles.modalBackground}>
                 {/* Modal Header */}
                 <View style={styles.modalHeader}>
                   <Text style={styles.modalTitle}>Select Target Muscles</Text>
-                  <TouchableOpacity
-                    style={styles.closeButton}
+                  <LightningButton
+                    variant="ghost"
+                    size="small"
                     onPress={() => setShowMuscleSelectionModal(false)}
-                  >
-                    <X size={24} color="#FFFFFF" />
-                  </TouchableOpacity>
+                    icon={<X size={24} color="#FFFFFF" />}
+                    style={styles.closeButton}
+                  />
                 </View>
 
                 {/* Muscle Grid */}
@@ -869,12 +851,18 @@ export default function WorkoutsScreen() {
                 >
                   <View style={styles.modalMuscleGrid}>
                     {muscleGroups.map((muscle, index) => (
-                      <TouchableOpacity
+                      <BoltCard
                         key={muscle.id}
+                        variant={
+                          selectedMuscles.includes(muscle.id)
+                            ? 'energy'
+                            : 'glass'
+                        }
                         style={[
                           styles.modalMuscleItem,
-                          selectedMuscles.includes(muscle.id) &&
-                            styles.selectedModalMuscle,
+                          ...(selectedMuscles.includes(muscle.id)
+                            ? [styles.selectedModalMuscle]
+                            : []),
                         ]}
                         onPress={() => toggleMuscleSelection(muscle.id)}
                       >
@@ -922,39 +910,32 @@ export default function WorkoutsScreen() {
                             {muscle.name}
                           </Text>
                         </View>
-                      </TouchableOpacity>
+                      </BoltCard>
                     ))}
                   </View>
                 </ScrollView>
 
                 {/* Generate Workout Button */}
                 <View style={styles.modalFooter}>
-                  <TouchableOpacity
-                    style={styles.generateWorkoutButton}
+                  <LightningButton
+                    variant={
+                      selectedMuscles.length > 0 ? 'primary' : 'disabled'
+                    }
+                    size="large"
                     onPress={() => {
                       setShowMuscleSelectionModal(false);
                       generateWorkoutWithGemini();
                     }}
                     disabled={selectedMuscles.length === 0}
+                    icon={<Sparkles size={20} color="#FFFFFF" />}
+                    style={styles.generateWorkoutButton}
                   >
-                    <LinearGradient
-                      colors={
-                        selectedMuscles.length > 0
-                          ? ['#6B46C1', '#8B5CF6']
-                          : ['#374151', '#4B5563']
-                      }
-                      style={styles.generateWorkoutGradient}
-                    >
-                      <Sparkles size={20} color="#FFFFFF" />
-                      <Text style={styles.generateWorkoutText}>
-                        {selectedMuscles.length > 0
-                          ? `Generate Workout (${selectedMuscles.length} muscles)`
-                          : 'Select muscles first'}
-                      </Text>
-                    </LinearGradient>
-                  </TouchableOpacity>
+                    {selectedMuscles.length > 0
+                      ? `Generate Workout (${selectedMuscles.length} muscles)`
+                      : 'Select muscles first'}
+                  </LightningButton>
                 </View>
-              </LinearGradient>
+              </BoltCard>
             </SafeAreaView>
           </Modal>
 

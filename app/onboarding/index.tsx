@@ -24,6 +24,9 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/lib/supabase';
 import { useLocalSearchParams } from 'expo-router';
 import { feetInchesToCm, poundsToKg } from '@/lib/unitConversions';
+import { BoltCard } from '@/components/design-system/BoltCard';
+import { LightningButton } from '@/components/design-system/LightningButton';
+import { SmartInput } from '@/components/design-system/SmartInput';
 
 export default function OnboardingScreen() {
   const router = useRouter();
@@ -410,12 +413,16 @@ export default function OnboardingScreen() {
     <View style={styles.stepContent}>
       <View style={styles.optionsGrid}>
         {fitnessGoals.map((goal) => (
-          <TouchableOpacity
+          <BoltCard
             key={goal.id}
+            variant={
+              onboardingData.fitnessGoals.includes(goal.id) ? 'energy' : 'glass'
+            }
             style={[
               styles.optionCard,
-              onboardingData.fitnessGoals.includes(goal.id) &&
-                styles.selectedOption,
+              ...(onboardingData.fitnessGoals.includes(goal.id)
+                ? [styles.selectedOption]
+                : []),
             ]}
             onPress={() => toggleGoal(goal.id)}
           >
@@ -438,7 +445,7 @@ export default function OnboardingScreen() {
             >
               {goal.label}
             </Text>
-          </TouchableOpacity>
+          </BoltCard>
         ))}
       </View>
     </View>
@@ -448,8 +455,11 @@ export default function OnboardingScreen() {
     <View style={styles.stepContent}>
       <View style={styles.optionsColumn}>
         {experienceLevels.map((level) => (
-          <TouchableOpacity
+          <BoltCard
             key={level.id}
+            variant={
+              onboardingData.experienceLevel === level.id ? 'energy' : 'glass'
+            }
             style={[
               styles.levelCard,
               onboardingData.experienceLevel === level.id &&
@@ -475,7 +485,7 @@ export default function OnboardingScreen() {
             >
               {level.description}
             </Text>
-          </TouchableOpacity>
+          </BoltCard>
         ))}
       </View>
     </View>
@@ -485,8 +495,11 @@ export default function OnboardingScreen() {
     <View style={styles.stepContent}>
       <View style={styles.optionsColumn}>
         {workoutFrequencies.map((freq) => (
-          <TouchableOpacity
+          <BoltCard
             key={freq.id}
+            variant={
+              onboardingData.workoutFrequency === freq.id ? 'energy' : 'glass'
+            }
             style={[
               styles.levelCard,
               onboardingData.workoutFrequency === freq.id &&
@@ -512,7 +525,7 @@ export default function OnboardingScreen() {
             >
               {freq.description}
             </Text>
-          </TouchableOpacity>
+          </BoltCard>
         ))}
       </View>
     </View>
@@ -522,8 +535,13 @@ export default function OnboardingScreen() {
     <View style={styles.stepContent}>
       <View style={styles.optionsGrid}>
         {equipmentOptions.map((equipment) => (
-          <TouchableOpacity
+          <BoltCard
             key={equipment.id}
+            variant={
+              onboardingData.equipment.includes(equipment.id)
+                ? 'energy'
+                : 'glass'
+            }
             style={[
               styles.equipmentCard,
               onboardingData.equipment.includes(equipment.id) &&
@@ -551,7 +569,7 @@ export default function OnboardingScreen() {
                 {equipment.description}
               </Text>
             </View>
-          </TouchableOpacity>
+          </BoltCard>
         ))}
       </View>
     </View>
@@ -561,8 +579,13 @@ export default function OnboardingScreen() {
     <View style={styles.stepContent}>
       <View style={styles.optionsColumn}>
         {workoutDurations.map((duration) => (
-          <TouchableOpacity
+          <BoltCard
             key={duration.id}
+            variant={
+              onboardingData.workoutDuration === duration.id
+                ? 'energy'
+                : 'glass'
+            }
             style={[
               styles.levelCard,
               onboardingData.workoutDuration === duration.id &&
@@ -588,7 +611,7 @@ export default function OnboardingScreen() {
             >
               {duration.description}
             </Text>
-          </TouchableOpacity>
+          </BoltCard>
         ))}
       </View>
     </View>
@@ -598,23 +621,28 @@ export default function OnboardingScreen() {
     <View style={styles.stepContent}>
       <View style={styles.optionsColumn}>
         {genderOptions.map((option) => (
-          <TouchableOpacity
+          <BoltCard
             key={option.id}
+            variant={onboardingData.gender === option.id ? 'energy' : 'glass'}
             style={[
               styles.levelCard,
-              onboardingData.gender === option.id && styles.selectedLevel,
+              ...(onboardingData.gender === option.id
+                ? [styles.selectedLevel]
+                : []),
             ]}
             onPress={() => selectGender(option.id)}
           >
             <Text
               style={[
                 styles.levelTitle,
-                onboardingData.gender === option.id && styles.selectedLevelText,
+                ...(onboardingData.gender === option.id
+                  ? [styles.selectedLevelText]
+                  : []),
               ]}
             >
               {option.label}
             </Text>
-          </TouchableOpacity>
+          </BoltCard>
         ))}
       </View>
     </View>
@@ -624,8 +652,11 @@ export default function OnboardingScreen() {
     <View style={styles.stepContent}>
       <View style={styles.optionsColumn}>
         {unitOptions.map((option) => (
-          <TouchableOpacity
+          <BoltCard
             key={option.id}
+            variant={
+              onboardingData.preferredUnits === option.id ? 'energy' : 'glass'
+            }
             style={[
               styles.levelCard,
               onboardingData.preferredUnits === option.id &&
@@ -651,7 +682,7 @@ export default function OnboardingScreen() {
             >
               {option.description}
             </Text>
-          </TouchableOpacity>
+          </BoltCard>
         ))}
       </View>
     </View>
@@ -661,24 +692,21 @@ export default function OnboardingScreen() {
     if (onboardingData.preferredUnits === 'metric') {
       return (
         <View style={styles.stepContent}>
-          <View style={styles.weightContainer}>
-            <Text style={styles.weightLabel}>Height (cm)</Text>
-            <TextInput
-              style={styles.weightInput}
-              value={
-                onboardingData.heightCm > 0
-                  ? onboardingData.heightCm.toString()
-                  : ''
-              }
-              onChangeText={(text) => {
-                const height = parseInt(text) || 0;
-                updateHeightCm(height);
-              }}
-              keyboardType="numeric"
-              placeholder="Enter your height in cm"
-              placeholderTextColor="#94A3B8"
-            />
-          </View>
+          <SmartInput
+            label="Height (cm)"
+            value={
+              onboardingData.heightCm > 0
+                ? onboardingData.heightCm.toString()
+                : ''
+            }
+            onChangeText={(text) => {
+              const height = parseInt(text) || 0;
+              updateHeightCm(height);
+            }}
+            keyboardType="numeric"
+            placeholder="Enter your height in cm"
+            style={styles.weightContainer}
+          />
         </View>
       );
     }
@@ -690,8 +718,11 @@ export default function OnboardingScreen() {
             <Text style={styles.heightLabel}>Feet</Text>
             <View style={styles.heightOptions}>
               {heightFeetOptions.map((feet) => (
-                <TouchableOpacity
+                <BoltCard
                   key={feet}
+                  variant={
+                    onboardingData.heightFeet === feet ? 'energy' : 'glass'
+                  }
                   style={[
                     styles.heightOption,
                     onboardingData.heightFeet === feet &&
@@ -710,7 +741,7 @@ export default function OnboardingScreen() {
                   >
                     {feet}'
                   </Text>
-                </TouchableOpacity>
+                </BoltCard>
               ))}
             </View>
           </View>
@@ -718,8 +749,11 @@ export default function OnboardingScreen() {
             <Text style={styles.heightLabel}>Inches</Text>
             <View style={styles.heightOptions}>
               {heightInchesOptions.map((inches) => (
-                <TouchableOpacity
+                <BoltCard
                   key={inches}
+                  variant={
+                    onboardingData.heightInches === inches ? 'energy' : 'glass'
+                  }
                   style={[
                     styles.heightOption,
                     onboardingData.heightInches === inches &&
@@ -738,7 +772,7 @@ export default function OnboardingScreen() {
                   >
                     {inches}"
                   </Text>
-                </TouchableOpacity>
+                </BoltCard>
               ))}
             </View>
           </View>
@@ -757,26 +791,23 @@ export default function OnboardingScreen() {
 
     return (
       <View style={styles.stepContent}>
-        <View style={styles.weightContainer}>
-          <Text style={styles.weightLabel}>Weight ({unit})</Text>
-          <TextInput
-            style={styles.weightInput}
-            value={weightValue > 0 ? weightValue.toString() : ''}
-            onChangeText={(text) => {
-              const weight = isMetric
-                ? parseFloat(text) || 0
-                : parseInt(text) || 0;
-              if (isMetric) {
-                updateWeightKg(weight);
-              } else {
-                updateWeight(weight);
-              }
-            }}
-            keyboardType="numeric"
-            placeholder={placeholder}
-            placeholderTextColor="#94A3B8"
-          />
-        </View>
+        <SmartInput
+          label={`Weight (${unit})`}
+          value={weightValue > 0 ? weightValue.toString() : ''}
+          onChangeText={(text) => {
+            const weight = isMetric
+              ? parseFloat(text) || 0
+              : parseInt(text) || 0;
+            if (isMetric) {
+              updateWeightKg(weight);
+            } else {
+              updateWeight(weight);
+            }
+          }}
+          keyboardType="numeric"
+          placeholder={placeholder}
+          style={styles.weightContainer}
+        />
       </View>
     );
   };
@@ -832,7 +863,7 @@ export default function OnboardingScreen() {
       case 1:
         return onboardingData.gender !== ''; // Gender
       case 2:
-        return onboardingData.preferredUnits !== ''; // Units
+        return onboardingData.preferredUnits !== undefined; // Units
       case 3:
         // Height validation based on selected units
         if (onboardingData.preferredUnits === 'metric') {
@@ -902,32 +933,31 @@ export default function OnboardingScreen() {
         {/* Navigation */}
         <View style={styles.navigation}>
           {currentStep > 0 ? (
-            <TouchableOpacity style={styles.backButton} onPress={handleBack}>
-              <View style={styles.backButtonContent}>
-                <ChevronLeft size={20} color="#94A3B8" />
-                <Text style={styles.backButtonText}>Back</Text>
-              </View>
-            </TouchableOpacity>
+            <LightningButton
+              variant="ghost"
+              size="medium"
+              onPress={handleBack}
+              icon={<ChevronLeft size={20} color="#94A3B8" />}
+              style={styles.backButton}
+            >
+              Back
+            </LightningButton>
           ) : (
             <View style={styles.backButtonPlaceholder} />
           )}
-          <TouchableOpacity
-            style={[styles.nextButton, !canProceed() && styles.disabledButton]}
+          <LightningButton
+            variant={canProceed() ? 'primary' : 'disabled'}
+            size="large"
             onPress={handleNext}
             disabled={!canProceed()}
+            icon={<ChevronRight size={20} color="#FFFFFF" />}
+            style={[
+              styles.nextButton,
+              ...(!canProceed() ? [styles.disabledButton] : []),
+            ]}
           >
-            <LinearGradient
-              colors={
-                canProceed() ? ['#6B46C1', '#8B5CF6'] : ['#374151', '#4B5563']
-              }
-              style={styles.nextButtonGradient}
-            >
-              <Text style={styles.nextButtonText}>
-                {currentStep === steps.length - 1 ? 'Get Started' : 'Next'}
-              </Text>
-              <ChevronRight size={20} color="#FFFFFF" />
-            </LinearGradient>
-          </TouchableOpacity>
+            {currentStep === steps.length - 1 ? 'Get Started' : 'Next'}
+          </LightningButton>
         </View>
       </LinearGradient>
     </SafeAreaView>

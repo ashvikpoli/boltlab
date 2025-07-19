@@ -8,18 +8,20 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Zap, Mail, Lock, Eye, EyeOff, ArrowLeft } from 'lucide-react-native';
+import { Zap, Mail, Lock, ArrowLeft, Eye, EyeOff } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
+import { BoltCard } from '@/components/design-system/BoltCard';
+import { LightningButton } from '@/components/design-system/LightningButton';
 
 export default function LoginScreen() {
   const router = useRouter();
   const { signIn } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -54,18 +56,19 @@ export default function LoginScreen() {
         {/* Header */}
         <View style={styles.header}>
           {/* Back Arrow */}
-          <TouchableOpacity
-            style={styles.backButton}
+          <LightningButton
+            variant="ghost"
+            size="small"
             onPress={() => router.back()}
-          >
-            <ArrowLeft size={24} color="#FFFFFF" />
-          </TouchableOpacity>
+            icon={<ArrowLeft size={24} color="#FFFFFF" />}
+            style={styles.backButton}
+          />
 
           <View style={styles.logoContainer}>
             <View style={styles.logoBackground}>
               <Zap size={32} color="#6B46C1" />
             </View>
-            <Text style={styles.logoText}>BoltLab</Text>
+            <Text style={styles.logoText}>BoltFit</Text>
           </View>
 
           <Text style={styles.headerTitle}>Welcome Back!</Text>
@@ -76,85 +79,97 @@ export default function LoginScreen() {
 
         {/* Form */}
         <View style={styles.formContainer}>
-          <View style={styles.formCard}>
-            <LinearGradient
-              colors={['#1A1A2E', '#0F0F23']}
-              style={styles.formGradient}
-            >
-              {/* Email Input */}
-              <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Email</Text>
-                <View style={styles.inputContainer}>
-                  <Mail size={20} color="#6B46C1" style={styles.inputIcon} />
-                  <TextInput
-                    style={styles.textInput}
-                    placeholder="Enter your email"
-                    placeholderTextColor="#64748B"
-                    value={email}
-                    onChangeText={setEmail}
-                    keyboardType="email-address"
-                    autoCapitalize="none"
-                  />
+          <BoltCard
+            variant="glass"
+            style={[styles.formCard, styles.formGradient]}
+          >
+            {/* Email Input */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Email</Text>
+              <View style={styles.inputContainer}>
+                <View style={styles.inputIcon}>
+                  <Mail size={20} color="#6B46C1" />
                 </View>
+                <TextInput
+                  style={styles.textInput}
+                  value={email}
+                  onChangeText={setEmail}
+                  placeholder="Enter your email"
+                  placeholderTextColor="#64748B"
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                />
               </View>
+            </View>
 
-              {/* Password Input */}
-              <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Password</Text>
-                <View style={styles.inputContainer}>
-                  <Lock size={20} color="#6B46C1" style={styles.inputIcon} />
-                  <TextInput
-                    style={styles.textInput}
-                    placeholder="Enter your password"
-                    placeholderTextColor="#64748B"
-                    value={password}
-                    onChangeText={setPassword}
-                    secureTextEntry={!showPassword}
-                  />
-                  <TouchableOpacity
-                    style={styles.passwordToggle}
-                    onPress={() => setShowPassword(!showPassword)}
-                  >
-                    {showPassword ? (
-                      <EyeOff size={20} color="#64748B" />
-                    ) : (
-                      <Eye size={20} color="#64748B" />
-                    )}
-                  </TouchableOpacity>
+            {/* Password Input */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Password</Text>
+              <View style={styles.inputContainer}>
+                <View style={styles.inputIcon}>
+                  <Lock size={20} color="#6B46C1" />
                 </View>
-              </View>
-
-              {/* Forgot Password */}
-              <TouchableOpacity style={styles.forgotPassword}>
-                <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
-              </TouchableOpacity>
-
-              {/* Sign In Button */}
-              <TouchableOpacity
-                style={styles.button}
-                onPress={handleLogin}
-                disabled={loading}
-              >
-                <LinearGradient
-                  colors={['#6B46C1', '#8B5CF6']}
-                  style={styles.gradient}
+                <TextInput
+                  style={styles.textInput}
+                  value={password}
+                  onChangeText={setPassword}
+                  placeholder="Enter your password"
+                  placeholderTextColor="#64748B"
+                  secureTextEntry={!showPassword}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                />
+                <TouchableOpacity
+                  onPress={() => setShowPassword(!showPassword)}
+                  style={styles.passwordToggle}
                 >
-                  <Text style={styles.buttonText}>
-                    {loading ? 'Signing In...' : 'Sign In'}
-                  </Text>
-                  {!loading && <Zap size={20} color="#FFFFFF" />}
-                </LinearGradient>
-              </TouchableOpacity>
-
-              {/* Sign Up Link */}
-              <View style={styles.signUpContainer}>
-                <Text style={styles.signUpText}>Don't have an account? </Text>
-                <TouchableOpacity onPress={() => router.push('/auth/signup')}>
-                  <Text style={styles.signUpLink}>Sign Up</Text>
+                  {showPassword ? (
+                    <EyeOff size={20} color="#64748B" />
+                  ) : (
+                    <Eye size={20} color="#64748B" />
+                  )}
                 </TouchableOpacity>
               </View>
-            </LinearGradient>
-          </View>
+            </View>
+
+            {/* Forgot Password */}
+            <LightningButton
+              variant="ghost"
+              size="small"
+              onPress={() => {
+                /* TODO: Implement forgot password */
+              }}
+              style={styles.forgotPassword}
+            >
+              Forgot Password?
+            </LightningButton>
+
+            {/* Sign In Button */}
+            <LightningButton
+              variant="primary"
+              size="large"
+              onPress={handleLogin}
+              disabled={loading}
+              loading={loading}
+              icon={!loading ? <Zap size={20} color="#FFFFFF" /> : undefined}
+              style={styles.button}
+            >
+              {loading ? 'Signing In...' : 'Sign In'}
+            </LightningButton>
+
+            {/* Sign Up Link */}
+            <View style={styles.signUpContainer}>
+              <Text style={styles.signUpText}>Don't have an account? </Text>
+              <LightningButton
+                variant="ghost"
+                size="small"
+                onPress={() => router.push('/auth/signup')}
+              >
+                Sign Up
+              </LightningButton>
+            </View>
+          </BoltCard>
         </View>
       </LinearGradient>
     </SafeAreaView>

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from './useAuth';
 import { useMuscleFatigue, type MuscleGroup } from './useMuscleFatigue';
-import { geminiWorkoutGenerator, GeneratedWorkout } from '@/lib/gemini';
+import { geminiService, GeneratedWorkout } from '@/lib/gemini';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Define muscle groups for workout selection
@@ -158,7 +158,7 @@ export function useDailyWorkout() {
       console.log('Generating daily workout with context:', userContext);
 
       // Generate workout using Gemini
-      const generatedWorkout = await geminiWorkoutGenerator.generateWorkout(
+      const generatedWorkout = await geminiService.generateWorkout(
         userContext
       );
 

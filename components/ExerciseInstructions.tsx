@@ -218,7 +218,7 @@ export default function ExerciseInstructions({
                     {[...Array(3)].map((_, index) => (
                       <Star
                         key={index}
-                        size={12}
+                        size="sm"
                         color={difficultyColor}
                         fill={
                           index < difficultyStars

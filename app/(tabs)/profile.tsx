@@ -159,7 +159,7 @@ export default function ProfileScreen() {
                   xp={levelProgress.currentXP}
                   maxXp={levelProgress.maxXP}
                   color={(profile?.avatar_color as any) || 'purple'}
-                  size="large"
+                  size="xl"
                   showStats={false}
                 />
                 <Text style={styles.profileName}>
@@ -190,7 +190,7 @@ export default function ProfileScreen() {
                 currentXP={levelProgress.currentXP}
                 maxXP={levelProgress.maxXP}
                 level={levelProgress.level}
-                size="large"
+                size="xl"
                 animated={true}
               />
             </LinearGradient>

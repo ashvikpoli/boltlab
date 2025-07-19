@@ -33,6 +33,8 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useSettings } from '@/hooks/useSettings';
 import { supabase } from '@/lib/supabase';
+import { BoltCard } from '@/components/design-system/BoltCard';
+import { LightningButton } from '@/components/design-system/LightningButton';
 
 interface SettingsData {
   notifications: boolean;
@@ -115,44 +117,39 @@ export default function SettingsScreen() {
     onToggle?: (value: boolean) => void,
     customElement?: React.ReactNode
   ) => (
-    <TouchableOpacity
+    <BoltCard
+      variant="glass"
       style={styles.settingItem}
-      onPress={onPress}
-      disabled={action === 'switch'}
+      onPress={action === 'switch' ? undefined : onPress}
     >
-      <LinearGradient
-        colors={['#1A1A2E', '#0F0F23']}
-        style={styles.settingGradient}
-      >
-        <View style={styles.settingLeft}>
-          <View style={styles.settingIcon}>
-            {React.createElement(icon, { size: 20, color: '#6B46C1' })}
-          </View>
-          <View style={styles.settingText}>
-            <Text style={styles.settingTitle}>{title}</Text>
-            {subtitle && <Text style={styles.settingSubtitle}>{subtitle}</Text>}
-          </View>
+      <View style={styles.settingLeft}>
+        <View style={styles.settingIcon}>
+          {React.createElement(icon, { size: 20, color: '#6B46C1' })}
         </View>
-        <View style={styles.settingRight}>
-          {action === 'switch' && (
-            <Switch
-              value={value}
-              onValueChange={onToggle}
-              trackColor={{ false: '#374151', true: '#6B46C1' }}
-              thumbColor={value ? '#FFFFFF' : '#9CA3AF'}
-            />
-          )}
-          {action === 'navigation' && (
-            <ArrowLeft
-              size={16}
-              color="#64748B"
-              style={{ transform: [{ rotate: '180deg' }] }}
-            />
-          )}
-          {customElement}
+        <View style={styles.settingText}>
+          <Text style={styles.settingTitle}>{title}</Text>
+          {subtitle && <Text style={styles.settingSubtitle}>{subtitle}</Text>}
         </View>
-      </LinearGradient>
-    </TouchableOpacity>
+      </View>
+      <View style={styles.settingRight}>
+        {action === 'switch' && (
+          <Switch
+            value={value}
+            onValueChange={onToggle}
+            trackColor={{ false: '#374151', true: '#6B46C1' }}
+            thumbColor={value ? '#FFFFFF' : '#9CA3AF'}
+          />
+        )}
+        {action === 'navigation' && (
+          <ArrowLeft
+            size={16}
+            color="#64748B"
+            style={{ transform: [{ rotate: '180deg' }] }}
+          />
+        )}
+        {customElement}
+      </View>
+    </BoltCard>
   );
 
   const renderSection = (title: string, children: React.ReactNode) => (
@@ -170,12 +167,13 @@ export default function SettingsScreen() {
       >
         {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity
-            style={styles.backButton}
+          <LightningButton
+            variant="ghost"
+            size="small"
             onPress={() => router.back()}
-          >
-            <ArrowLeft size={24} color="#FFFFFF" />
-          </TouchableOpacity>
+            icon={<ArrowLeft size={24} color="#FFFFFF" />}
+            style={styles.backButton}
+          />
           <Text style={styles.headerTitle}>Settings</Text>
           <View style={styles.headerSpacer} />
         </View>
@@ -351,18 +349,15 @@ export default function SettingsScreen() {
 
           {/* Sign Out */}
           <View style={styles.signOutSection}>
-            <TouchableOpacity
-              style={styles.signOutButton}
+            <LightningButton
+              variant="danger"
+              size="large"
               onPress={handleSignOut}
+              icon={<LogOut size={20} color="#FFFFFF" />}
+              style={styles.signOutButton}
             >
-              <LinearGradient
-                colors={['#EF4444', '#DC2626']}
-                style={styles.signOutGradient}
-              >
-                <LogOut size={20} color="#FFFFFF" />
-                <Text style={styles.signOutText}>Sign Out</Text>
-              </LinearGradient>
-            </TouchableOpacity>
+              Sign Out
+            </LightningButton>
           </View>
         </ScrollView>
       </LinearGradient>

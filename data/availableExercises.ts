@@ -911,25 +911,24 @@ export const exerciseImageRegistry: { [key: string]: any } = {
   Backward_Medicine_Ball_Throw: require('@/assets/images/exercises/Backward_Medicine_Ball_Throw/images/0.jpg'),
   Balance_Board: require('@/assets/images/exercises/Balance_Board/images/0.jpg'),
   Ball_Leg_Curl: require('@/assets/images/exercises/Ball_Leg_Curl/images/0.jpg'),
-  
-  // Common AI-generated exercise name aliases  
-  'Pushups': require('@/assets/images/exercises/Decline_Push-Up/images/0.jpg'),
+
+  // Common AI-generated exercise name aliases
+  Pushups: require('@/assets/images/exercises/Decline_Push-Up/images/0.jpg'),
   'Push-ups': require('@/assets/images/exercises/Decline_Push-Up/images/0.jpg'),
-  'Push_ups': require('@/assets/images/exercises/Decline_Push-Up/images/0.jpg'),
+  Push_ups: require('@/assets/images/exercises/Decline_Push-Up/images/0.jpg'),
   'Push-Up': require('@/assets/images/exercises/Decline_Push-Up/images/0.jpg'),
-  'Push_Up': require('@/assets/images/exercises/Decline_Push-Up/images/0.jpg'),
+  Push_Up: require('@/assets/images/exercises/Decline_Push-Up/images/0.jpg'),
   'Incline_Push-Up': require('@/assets/images/exercises/Incline_Push-Up/images/0.jpg'),
-  'Incline_Push_Up': require('@/assets/images/exercises/Incline_Push-Up/images/0.jpg'),
+  Incline_Push_Up: require('@/assets/images/exercises/Incline_Push-Up/images/0.jpg'),
   'Incline Push-Up': require('@/assets/images/exercises/Incline_Push-Up/images/0.jpg'),
   'Incline Push Up': require('@/assets/images/exercises/Incline_Push-Up/images/0.jpg'),
-  'Bodyweight_Mid_Row': require('@/assets/images/exercises/Bodyweight_Mid_Row/images/0.jpg'),
+  Bodyweight_Mid_Row: require('@/assets/images/exercises/Bodyweight_Mid_Row/images/0.jpg'),
   'Bodyweight Mid Row': require('@/assets/images/exercises/Bodyweight_Mid_Row/images/0.jpg'),
-  'Inverted_Row': require('@/assets/images/exercises/Inverted_Row/images/0.jpg'),
+  Inverted_Row: require('@/assets/images/exercises/Inverted_Row/images/0.jpg'),
   'Inverted Row': require('@/assets/images/exercises/Inverted_Row/images/0.jpg'),
-  '3_4_Sit-Up': require('@/assets/images/exercises/3_4_Sit-Up/images/0.jpg'),
   '3/4 Sit-Up': require('@/assets/images/exercises/3_4_Sit-Up/images/0.jpg'),
   'Body-Up': require('@/assets/images/exercises/Body-Up/images/0.jpg'),
-  'BodyUp': require('@/assets/images/exercises/Body-Up/images/0.jpg'),
+  BodyUp: require('@/assets/images/exercises/Body-Up/images/0.jpg'),
   'Band_Assisted_Pull-Up': require('@/assets/images/exercises/Band_Assisted_Pull-Up/images/0.jpg'),
   Band_Good_Morning: require('@/assets/images/exercises/Band_Good_Morning/images/0.jpg'),
   'Band_Good_Morning_(Pull_Through)': require('@/assets/images/exercises/Band_Good_Morning_(Pull_Through)/images/0.jpg'),
@@ -986,9 +985,7 @@ export const exerciseImageRegistry: { [key: string]: any } = {
   'Bicycling,_Stationary': require('@/assets/images/exercises/Bicycling,_Stationary/images/0.jpg'),
   Board_Press: require('@/assets/images/exercises/Board_Press/images/0.jpg'),
   Body_Tricep_Press: require('@/assets/images/exercises/Body_Tricep_Press/images/0.jpg'),
-  'Body-Up': require('@/assets/images/exercises/Body-Up/images/0.jpg'),
   Bodyweight_Flyes: require('@/assets/images/exercises/Bodyweight_Flyes/images/0.jpg'),
-  Bodyweight_Mid_Row: require('@/assets/images/exercises/Bodyweight_Mid_Row/images/0.jpg'),
   Bodyweight_Squat: require('@/assets/images/exercises/Bodyweight_Squat/images/0.jpg'),
   Bodyweight_Walking_Lunge: require('@/assets/images/exercises/Bodyweight_Walking_Lunge/images/0.jpg'),
   Bosu_Ball_Cable_Crunch_With_Side_Bends: require('@/assets/images/exercises/Bosu_Ball_Cable_Crunch_With_Side_Bends/images/0.jpg'),
@@ -1043,12 +1040,12 @@ export const getExerciseImage = (exerciseName: string) => {
   const fuzzyMatch = Object.keys(exerciseImageRegistry).find((key) => {
     const keyLower = key.toLowerCase().replace(/[_\-\s]/g, '');
     const nameLower = exerciseName.toLowerCase().replace(/[_\-\s]/g, '');
-    
+
     // Check if one contains the other (with at least 4 characters)
     if (keyLower.length >= 4 && nameLower.length >= 4) {
       return keyLower.includes(nameLower) || nameLower.includes(keyLower);
     }
-    
+
     // Check for close matches
     const similarity = calculateSimilarity(keyLower, nameLower);
     return similarity > 0.7;
@@ -1066,24 +1063,24 @@ export const getExerciseImage = (exerciseName: string) => {
 function calculateSimilarity(str1: string, str2: string): number {
   const longer = str1.length > str2.length ? str1 : str2;
   const shorter = str1.length > str2.length ? str2 : str1;
-  
+
   if (longer.length === 0) return 1.0;
-  
+
   const editDistance = getEditDistance(longer, shorter);
   return (longer.length - editDistance) / longer.length;
 }
 
 function getEditDistance(str1: string, str2: string): number {
   const matrix = [];
-  
+
   for (let i = 0; i <= str2.length; i++) {
     matrix[i] = [i];
   }
-  
+
   for (let j = 0; j <= str1.length; j++) {
     matrix[0][j] = j;
   }
-  
+
   for (let i = 1; i <= str2.length; i++) {
     for (let j = 1; j <= str1.length; j++) {
       if (str2.charAt(i - 1) === str1.charAt(j - 1)) {
@@ -1097,6 +1094,6 @@ function getEditDistance(str1: string, str2: string): number {
       }
     }
   }
-  
+
   return matrix[str2.length][str1.length];
 }

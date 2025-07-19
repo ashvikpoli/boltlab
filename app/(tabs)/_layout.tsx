@@ -4,6 +4,7 @@ import {
   Chrome as Home,
   Dumbbell,
   TrendingUp,
+  Trophy,
   Users,
   User,
 } from 'lucide-react-native';
@@ -54,6 +55,13 @@ export default function TabLayout() {
           tabBarIcon: ({ size, color }) => (
             <TrendingUp size={size} color={color} />
           ),
+        }}
+      />
+      <Tabs.Screen
+        name="challenges"
+        options={{
+          title: 'Challenges',
+          tabBarIcon: ({ size, color }) => <Trophy size={size} color={color} />,
         }}
       />
       <Tabs.Screen

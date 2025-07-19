@@ -14,13 +14,14 @@ import {
   Mail,
   Lock,
   User,
-  Eye,
-  EyeOff,
   ArrowLeft,
 } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
+import { BoltCard } from '@/components/design-system/BoltCard';
+import { LightningButton } from '@/components/design-system/LightningButton';
+import { SmartInput } from '@/components/design-system/SmartInput';
 
 export default function SignUpScreen() {
   const router = useRouter();
@@ -29,8 +30,6 @@ export default function SignUpScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const handleSignUp = async () => {
@@ -76,18 +75,19 @@ export default function SignUpScreen() {
           {/* Header */}
           <View style={styles.header}>
             {/* Back Arrow */}
-            <TouchableOpacity
-              style={styles.backButton}
+            <LightningButton
+              variant="ghost"
+              size="small"
               onPress={() => router.back()}
-            >
-              <ArrowLeft size={24} color="#FFFFFF" />
-            </TouchableOpacity>
+              icon={<ArrowLeft size={24} color="#FFFFFF" />}
+              style={styles.backButton}
+            />
 
             <View style={styles.logoContainer}>
               <View style={styles.logoBackground}>
                 <Zap size={32} color="#6B46C1" />
               </View>
-              <Text style={styles.logoText}>BoltLab</Text>
+              <Text style={styles.logoText}>BoltFit</Text>
             </View>
 
             <Text style={styles.headerTitle}>Join the Revolution</Text>
@@ -98,135 +98,89 @@ export default function SignUpScreen() {
 
           {/* Form */}
           <View style={styles.formContainer}>
-            <View style={styles.formCard}>
-              <LinearGradient
-                colors={['#1A1A2E', '#0F0F23']}
-                style={styles.formGradient}
+            <BoltCard
+              variant="glass"
+              style={[styles.formCard, styles.formGradient]}
+            >
+              {/* Name Input */}
+              <SmartInput
+                label="Full Name"
+                value={name}
+                onChangeText={setName}
+                placeholder="Enter your full name"
+                autoCapitalize="words"
+                leftIcon={<User size={20} color="#6B46C1" />}
+                style={styles.inputGroup}
+              />
+
+              {/* Email Input */}
+              <SmartInput
+                label="Email"
+                value={email}
+                onChangeText={setEmail}
+                placeholder="Enter your email"
+                keyboardType="email-address"
+                autoCapitalize="none"
+                leftIcon={<Mail size={20} color="#6B46C1" />}
+                style={styles.inputGroup}
+              />
+
+              {/* Password Input */}
+              <SmartInput
+                label="Password"
+                value={password}
+                onChangeText={setPassword}
+                placeholder="Enter your password"
+                secureTextEntry={true}
+                leftIcon={<Lock size={20} color="#6B46C1" />}
+                style={styles.inputGroup}
+              />
+
+              {/* Confirm Password Input */}
+              <SmartInput
+                label="Confirm Password"
+                value={confirmPassword}
+                onChangeText={setConfirmPassword}
+                placeholder="Confirm your password"
+                secureTextEntry={true}
+                leftIcon={<Lock size={20} color="#6B46C1" />}
+                style={styles.inputGroup}
+              />
+
+              {/* Terms */}
+              <View style={styles.termsContainer}>
+                <Text style={styles.termsText}>
+                  By signing up, you agree to our{' '}
+                  <Text style={styles.termsLink}>Terms of Service</Text> and{' '}
+                  <Text style={styles.termsLink}>Privacy Policy</Text>
+                </Text>
+              </View>
+
+              {/* Sign Up Button */}
+              <LightningButton
+                variant="primary"
+                size="large"
+                onPress={handleSignUp}
+                disabled={loading}
+                loading={loading}
+                icon={!loading ? <Zap size={20} color="#FFFFFF" /> : undefined}
+                style={styles.button}
               >
-                {/* Name Input */}
-                <View style={styles.inputGroup}>
-                  <Text style={styles.inputLabel}>Full Name</Text>
-                  <View style={styles.inputContainer}>
-                    <User size={20} color="#6B46C1" style={styles.inputIcon} />
-                    <TextInput
-                      style={styles.textInput}
-                      placeholder="Enter your full name"
-                      placeholderTextColor="#64748B"
-                      value={name}
-                      onChangeText={setName}
-                      autoCapitalize="words"
-                    />
-                  </View>
-                </View>
+                {loading ? 'Creating Account...' : 'Create Account'}
+              </LightningButton>
 
-                {/* Email Input */}
-                <View style={styles.inputGroup}>
-                  <Text style={styles.inputLabel}>Email</Text>
-                  <View style={styles.inputContainer}>
-                    <Mail size={20} color="#6B46C1" style={styles.inputIcon} />
-                    <TextInput
-                      style={styles.textInput}
-                      placeholder="Enter your email"
-                      placeholderTextColor="#64748B"
-                      value={email}
-                      onChangeText={setEmail}
-                      keyboardType="email-address"
-                      autoCapitalize="none"
-                    />
-                  </View>
-                </View>
-
-                {/* Password Input */}
-                <View style={styles.inputGroup}>
-                  <Text style={styles.inputLabel}>Password</Text>
-                  <View style={styles.inputContainer}>
-                    <Lock size={20} color="#6B46C1" style={styles.inputIcon} />
-                    <TextInput
-                      style={styles.textInput}
-                      placeholder="Enter your password"
-                      placeholderTextColor="#64748B"
-                      value={password}
-                      onChangeText={setPassword}
-                      secureTextEntry={!showPassword}
-                    />
-                    <TouchableOpacity
-                      style={styles.passwordToggle}
-                      onPress={() => setShowPassword(!showPassword)}
-                    >
-                      {showPassword ? (
-                        <EyeOff size={20} color="#64748B" />
-                      ) : (
-                        <Eye size={20} color="#64748B" />
-                      )}
-                    </TouchableOpacity>
-                  </View>
-                </View>
-
-                {/* Confirm Password Input */}
-                <View style={styles.inputGroup}>
-                  <Text style={styles.inputLabel}>Confirm Password</Text>
-                  <View style={styles.inputContainer}>
-                    <Lock size={20} color="#6B46C1" style={styles.inputIcon} />
-                    <TextInput
-                      style={styles.textInput}
-                      placeholder="Confirm your password"
-                      placeholderTextColor="#64748B"
-                      value={confirmPassword}
-                      onChangeText={setConfirmPassword}
-                      secureTextEntry={!showConfirmPassword}
-                    />
-                    <TouchableOpacity
-                      style={styles.passwordToggle}
-                      onPress={() =>
-                        setShowConfirmPassword(!showConfirmPassword)
-                      }
-                    >
-                      {showConfirmPassword ? (
-                        <EyeOff size={20} color="#64748B" />
-                      ) : (
-                        <Eye size={20} color="#64748B" />
-                      )}
-                    </TouchableOpacity>
-                  </View>
-                </View>
-
-                {/* Terms */}
-                <View style={styles.termsContainer}>
-                  <Text style={styles.termsText}>
-                    By signing up, you agree to our{' '}
-                    <Text style={styles.termsLink}>Terms of Service</Text> and{' '}
-                    <Text style={styles.termsLink}>Privacy Policy</Text>
-                  </Text>
-                </View>
-
-                {/* Sign Up Button */}
-                <TouchableOpacity
-                  style={styles.button}
-                  onPress={handleSignUp}
-                  disabled={loading}
+              {/* Sign In Link */}
+              <View style={styles.signInContainer}>
+                <Text style={styles.signInText}>Already have an account? </Text>
+                <LightningButton
+                  variant="ghost"
+                  size="small"
+                  onPress={() => router.push('/auth/login')}
                 >
-                  <LinearGradient
-                    colors={['#6B46C1', '#8B5CF6']}
-                    style={styles.gradient}
-                  >
-                    <Text style={styles.buttonText}>
-                      {loading ? 'Creating Account...' : 'Create Account'}
-                    </Text>
-                    {!loading && <Zap size={20} color="#FFFFFF" />}
-                  </LinearGradient>
-                </TouchableOpacity>
-
-                {/* Sign In Link */}
-                <View style={styles.signInContainer}>
-                  <Text style={styles.signInText}>
-                    Already have an account?{' '}
-                  </Text>
-                  <TouchableOpacity onPress={() => router.push('/auth/login')}>
-                    <Text style={styles.signInLink}>Sign In</Text>
-                  </TouchableOpacity>
-                </View>
-              </LinearGradient>
-            </View>
+                  Sign In
+                </LightningButton>
+              </View>
+            </BoltCard>
           </View>
         </ScrollView>
       </LinearGradient>

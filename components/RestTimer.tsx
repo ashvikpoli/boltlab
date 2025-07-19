@@ -1,5 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Modal, Dimensions } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  Modal,
+  Dimensions,
+} from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import { Play, Pause, RotateCcw, Clock } from 'lucide-react-native';
@@ -46,7 +53,7 @@ export default function RestTimer({
   }, [isRunning, timeRemaining]);
 
   useEffect(() => {
-    let interval: NodeJS.Timeout;
+    let interval: NodeJS.Timeout | number;
 
     if (isRunning && timeRemaining > 0) {
       interval = setInterval(() => {
@@ -105,110 +112,119 @@ export default function RestTimer({
     >
       <BlurView intensity={15} style={styles.blurContainer}>
         <View style={styles.overlay}>
-    <View style={styles.container}>
-      <LinearGradient colors={['#1A1A2E', '#0F0F23']} style={styles.gradient}>
-        <View style={styles.header}>
-                <Clock size={24} color="#6B46C1" />
-          <Text style={styles.title}>Rest Timer</Text>
-        </View>
-
-        {/* Circular Progress */}
-        <View style={styles.timerContainer}>
-          <View style={styles.circularProgress}>
-            <View
-              style={[
-                styles.progressRing,
-                {
-                  borderColor: getTimerColor(),
-                  transform: [
-                    { rotate: `${getProgressPercentage() * 3.6}deg` },
-                  ],
-                },
-              ]}
-            />
-            <View style={styles.timerContent}>
-              <Text style={[styles.timeText, { color: getTimerColor() }]}>
-                {formatTime(timeRemaining)}
-              </Text>
-              <Text style={styles.timeLabel}>remaining</Text>
-            </View>
-          </View>
-        </View>
-
-        {/* Progress Bar */}
-        <View style={styles.progressBarContainer}>
-          <View style={styles.progressBar}>
-            <View
-              style={[
-                styles.progressFill,
-                {
-                  width: `${getProgressPercentage()}%`,
-                  backgroundColor: getTimerColor(),
-                },
-              ]}
-            />
-          </View>
-        </View>
-
-        {/* Controls */}
-        <View style={styles.controls}>
-          <TouchableOpacity style={styles.controlButton} onPress={handleReset}>
-            <View style={styles.controlButtonContent}>
-              <RotateCcw size={20} color="#64748B" />
-            </View>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.playButton} onPress={handlePlayPause}>
+          <View style={styles.container}>
             <LinearGradient
-              colors={['#6B46C1', '#8B5CF6']}
-              style={styles.playButtonGradient}
+              colors={['#1A1A2E', '#0F0F23']}
+              style={styles.gradient}
             >
-              {isRunning ? (
-                <Pause size={24} color="#FFFFFF" />
-              ) : (
-                <Play size={24} color="#FFFFFF" />
-              )}
-            </LinearGradient>
-          </TouchableOpacity>
+              <View style={styles.header}>
+                <Clock size={24} color="#6B46C1" />
+                <Text style={styles.title}>Rest Timer</Text>
+              </View>
 
-          <TouchableOpacity style={styles.controlButton} onPress={onSkip}>
-            <View style={styles.controlButtonContent}>
-              <Text style={styles.skipText}>Skip</Text>
-            </View>
-          </TouchableOpacity>
-        </View>
+              {/* Circular Progress */}
+              <View style={styles.timerContainer}>
+                <View style={styles.circularProgress}>
+                  <View
+                    style={[
+                      styles.progressRing,
+                      {
+                        borderColor: getTimerColor(),
+                        transform: [
+                          { rotate: `${getProgressPercentage() * 3.6}deg` },
+                        ],
+                      },
+                    ]}
+                  />
+                  <View style={styles.timerContent}>
+                    <Text style={[styles.timeText, { color: getTimerColor() }]}>
+                      {formatTime(timeRemaining)}
+                    </Text>
+                    <Text style={styles.timeLabel}>remaining</Text>
+                  </View>
+                </View>
+              </View>
 
-        {/* Quick Time Adjustments */}
-        <View style={styles.quickTimes}>
-          <Text style={styles.quickTimesLabel}>Quick adjust:</Text>
-          <View style={styles.quickTimeButtons}>
-            {[30, 60, 90, 120].map((time) => (
-              <TouchableOpacity
-                key={time}
-                style={[
-                  styles.quickTimeButton,
-                  restDuration === time && styles.activeQuickTime,
-                ]}
-                onPress={() => {
-                  setTimeRemaining(time);
-                  setIsRunning(false);
-                  cancelRestNotifications();
-                }}
-              >
-                <Text
-                  style={[
-                    styles.quickTimeText,
-                    restDuration === time && styles.activeQuickTimeText,
-                  ]}
+              {/* Progress Bar */}
+              <View style={styles.progressBarContainer}>
+                <View style={styles.progressBar}>
+                  <View
+                    style={[
+                      styles.progressFill,
+                      {
+                        width: `${getProgressPercentage()}%`,
+                        backgroundColor: getTimerColor(),
+                      },
+                    ]}
+                  />
+                </View>
+              </View>
+
+              {/* Controls */}
+              <View style={styles.controls}>
+                <TouchableOpacity
+                  style={styles.controlButton}
+                  onPress={handleReset}
                 >
-                  {time < 60 ? `${time}s` : `${time / 60}m`}
-                </Text>
-              </TouchableOpacity>
-            ))}
+                  <View style={styles.controlButtonContent}>
+                    <RotateCcw size={20} color="#64748B" />
+                  </View>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.playButton}
+                  onPress={handlePlayPause}
+                >
+                  <LinearGradient
+                    colors={['#6B46C1', '#8B5CF6']}
+                    style={styles.playButtonGradient}
+                  >
+                    {isRunning ? (
+                      <Pause size={24} color="#FFFFFF" />
+                    ) : (
+                      <Play size={24} color="#FFFFFF" />
+                    )}
+                  </LinearGradient>
+                </TouchableOpacity>
+
+                <TouchableOpacity style={styles.controlButton} onPress={onSkip}>
+                  <View style={styles.controlButtonContent}>
+                    <Text style={styles.skipText}>Skip</Text>
+                  </View>
+                </TouchableOpacity>
+              </View>
+
+              {/* Quick Time Adjustments */}
+              <View style={styles.quickTimes}>
+                <Text style={styles.quickTimesLabel}>Quick adjust:</Text>
+                <View style={styles.quickTimeButtons}>
+                  {[30, 60, 90, 120].map((time) => (
+                    <TouchableOpacity
+                      key={time}
+                      style={[
+                        styles.quickTimeButton,
+                        restDuration === time && styles.activeQuickTime,
+                      ]}
+                      onPress={() => {
+                        setTimeRemaining(time);
+                        setIsRunning(false);
+                        cancelRestNotifications();
+                      }}
+                    >
+                      <Text
+                        style={[
+                          styles.quickTimeText,
+                          restDuration === time && styles.activeQuickTimeText,
+                        ]}
+                      >
+                        {time < 60 ? `${time}s` : `${time / 60}m`}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+            </LinearGradient>
           </View>
-        </View>
-      </LinearGradient>
-    </View>
         </View>
       </BlurView>
     </Modal>

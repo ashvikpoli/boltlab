@@ -159,7 +159,7 @@ export default function StreakDisplay({
             {Array.from({ length: maxShields }).map((_, index) => (
               <View key={index} style={styles.shieldSlot}>
                 <Shield
-                  size={12}
+                  size="sm"
                   color={index < streakShields ? '#3B82F6' : '#64748B'}
                   fill={index < streakShields ? '#3B82F6' : 'transparent'}
                 />

@@ -1,367 +1,364 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Animated } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { Trophy, Lock } from 'lucide-react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet } from 'react-native';
+import { BoltCard } from './design-system/BoltCard';
+import { ProgressRing } from './design-system/ProgressRing';
+import {
+  CelebrationBurst,
+  Pulse,
+  Sparkle,
+} from './design-system/AnimatedComponents';
+
+interface Achievement {
+  id: string;
+  title: string;
+  description: string;
+  rarity: 'common' | 'rare' | 'epic' | 'legendary';
+  isUnlocked: boolean;
+  progress: number;
+  target: number;
+  icon: string;
+  xpReward: number;
+  dateUnlocked?: string;
+}
 
 interface AchievementCardProps {
-  achievement: {
-    id: string;
-    title: string;
-    description: string;
-    icon: string;
-    rarity: 'common' | 'rare' | 'epic' | 'legendary';
-    xpReward: number;
-    unlocked: boolean;
-    unlockedDate?: Date;
-    progress?: number;
-    maxProgress?: number;
-  };
+  achievement: Achievement;
   onPress?: () => void;
-  size?: 'small' | 'medium' | 'large';
+  animated?: boolean;
   showProgress?: boolean;
 }
 
-export default function AchievementCard({
+export const AchievementCard: React.FC<AchievementCardProps> = ({
   achievement,
   onPress,
-  size = 'medium',
+  animated = true,
   showProgress = true,
-}: AchievementCardProps) {
-  const [glowAnim] = useState(new Animated.Value(0));
-  const [scaleAnim] = useState(new Animated.Value(1));
+}) => {
+  const [wasJustUnlocked, setWasJustUnlocked] = useState(false);
+  const [showSparkles, setShowSparkles] = useState(false);
 
+  // Detect if achievement was just unlocked
   useEffect(() => {
-    if (achievement.unlocked) {
-      // Glow animation for unlocked achievements
-      const glowAnimation = Animated.loop(
-        Animated.sequence([
-          Animated.timing(glowAnim, {
-            toValue: 1,
-            duration: 2000,
-            useNativeDriver: false,
-          }),
-          Animated.timing(glowAnim, {
-            toValue: 0.3,
-            duration: 2000,
-            useNativeDriver: false,
-          }),
-        ])
-      );
-      glowAnimation.start();
+    if (achievement.isUnlocked && !wasJustUnlocked) {
+      setWasJustUnlocked(true);
+      setShowSparkles(true);
 
-      return () => glowAnimation.stop();
+      // Reset sparkle state after celebration
+      setTimeout(() => {
+        setShowSparkles(false);
+      }, 3000);
     }
-  }, [achievement.unlocked]);
+  }, [achievement.isUnlocked, wasJustUnlocked]);
 
-  const getRarityColors = () => {
-    switch (achievement.rarity) {
+  const getRarityColors = (rarity: string) => {
+    switch (rarity) {
       case 'common':
         return {
-          primary: '#94A3B8',
-          secondary: '#64748B',
-          glow: '#94A3B8',
+          primary: '#10B981',
+          secondary: '#059669',
+          glow: 'rgba(16, 185, 129, 0.3)',
+          sparkles: ['#10B981', '#34D399', '#6EE7B7'],
         };
       case 'rare':
         return {
           primary: '#3B82F6',
-          secondary: '#1D4ED8',
-          glow: '#3B82F6',
+          secondary: '#2563EB',
+          glow: 'rgba(59, 130, 246, 0.3)',
+          sparkles: ['#3B82F6', '#60A5FA', '#93C5FD'],
         };
       case 'epic':
         return {
           primary: '#8B5CF6',
           secondary: '#7C3AED',
-          glow: '#8B5CF6',
+          glow: 'rgba(139, 92, 246, 0.3)',
+          sparkles: ['#8B5CF6', '#A78BFA', '#C4B5FD'],
         };
       case 'legendary':
         return {
           primary: '#F59E0B',
           secondary: '#D97706',
-          glow: '#F59E0B',
+          glow: 'rgba(245, 158, 11, 0.3)',
+          sparkles: ['#F59E0B', '#FBBF24', '#FDE68A', '#FFD700'],
         };
       default:
         return {
-          primary: '#94A3B8',
-          secondary: '#64748B',
-          glow: '#94A3B8',
+          primary: '#6B7280',
+          secondary: '#4B5563',
+          glow: 'rgba(107, 114, 128, 0.3)',
+          sparkles: ['#6B7280', '#9CA3AF'],
         };
     }
   };
 
-  const colors = getRarityColors();
-  const progressPercentage = achievement.maxProgress 
-    ? ((achievement.progress || 0) / achievement.maxProgress) * 100 
-    : 0;
+  const colors = getRarityColors(achievement.rarity);
+  const progressPercentage = Math.min(
+    (achievement.progress / achievement.target) * 100,
+    100
+  );
+  const isCompleted = achievement.isUnlocked;
 
-  const getCardSize = () => {
-    switch (size) {
-      case 'small':
-        return { width: 120, height: 100 };
-      case 'large':
-        return { width: 200, height: 160 };
-      default:
-        return { width: 160, height: 130 };
-    }
-  };
+  const CardContent = (
+    <View style={styles.cardContent}>
+      {/* Rarity Indicator */}
+      <View style={[styles.rarityBadge, { backgroundColor: colors.primary }]}>
+        <Text style={styles.rarityText}>
+          {achievement.rarity.toUpperCase()}
+        </Text>
+      </View>
 
-  const getIconSize = () => {
-    switch (size) {
-      case 'small': return 20;
-      case 'large': return 32;
-      default: return 24;
-    }
-  };
-
-  const getFontSizes = () => {
-    switch (size) {
-      case 'small':
-        return { title: 12, description: 10, xp: 10 };
-      case 'large':
-        return { title: 16, description: 14, xp: 12 };
-      default:
-        return { title: 14, description: 12, xp: 11 };
-    }
-  };
-
-  const fontSizes = getFontSizes();
-
-  return (
-    <TouchableOpacity
-      style={[styles.container, getCardSize()]}
-      onPress={onPress}
-      activeOpacity={0.8}
-    >
-      <Animated.View
-        style={[
-          styles.cardWrapper,
-          {
-            transform: [{ scale: scaleAnim }],
-          },
-        ]}
-      >
-        {/* Glow effect for unlocked achievements */}
-        {achievement.unlocked && (
-          <Animated.View
-            style={[
-              styles.glowEffect,
-              {
-                shadowColor: colors.glow,
-                shadowOpacity: glowAnim.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [0.3, 0.8],
-                }),
-                shadowRadius: glowAnim.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [4, 12],
-                }),
-              },
-            ]}
-          />
-        )}
-
-        <LinearGradient
-          colors={
-            achievement.unlocked
-              ? [colors.primary + '30', colors.secondary + '20']
-              : ['#1A1A2E', '#0F0F23']
-          }
+      {/* Achievement Icon */}
+      <View style={styles.iconContainer}>
+        <View
           style={[
-            styles.gradient,
+            styles.iconBackground,
             {
-              borderColor: achievement.unlocked ? colors.primary : '#1A1A2E',
-              opacity: achievement.unlocked ? 1 : 0.6,
+              backgroundColor: colors.glow,
+              borderColor: colors.primary,
             },
           ]}
         >
-          {/* Rarity Border */}
-          <View
-            style={[
-              styles.rarityBorder,
-              {
-                borderTopColor: colors.primary,
-                borderTopWidth: 3,
-              },
-            ]}
-          />
+          <Text style={styles.iconText}>{achievement.icon}</Text>
+        </View>
 
-          {/* Achievement Icon */}
-          <View style={styles.iconContainer}>
-            {achievement.unlocked ? (
-              <Text style={[styles.iconEmoji, { fontSize: getIconSize() }]}>
-                {achievement.icon}
-              </Text>
-            ) : (
-              <Lock size={getIconSize()} color="#64748B" />
-            )}
-          </View>
+        {/* Sparkle effects for legendary achievements */}
+        {achievement.rarity === 'legendary' && isCompleted && showSparkles && (
+          <>
+            <Sparkle
+              style={{ top: -5, right: -5 }}
+              color={colors.sparkles[0]}
+              size={8}
+              duration={1500}
+            />
+            <Sparkle
+              style={{ bottom: -3, left: -3 }}
+              color={colors.sparkles[1]}
+              size={6}
+              duration={1800}
+            />
+            <Sparkle
+              style={{ top: 10, left: -8 }}
+              color={colors.sparkles[2]}
+              size={7}
+              duration={1200}
+            />
+          </>
+        )}
+      </View>
 
-          {/* Achievement Info */}
-          <View style={styles.infoContainer}>
-            <Text
-              style={[
-                styles.title,
-                {
-                  fontSize: fontSizes.title,
-                  color: achievement.unlocked ? '#FFFFFF' : '#64748B',
-                },
-              ]}
-              numberOfLines={1}
-            >
-              {achievement.title}
-            </Text>
-            
-            {size !== 'small' && (
-              <Text
-                style={[
-                  styles.description,
-                  {
-                    fontSize: fontSizes.description,
-                    color: achievement.unlocked ? '#94A3B8' : '#475569',
-                  },
-                ]}
-                numberOfLines={2}
-              >
-                {achievement.description}
-              </Text>
-            )}
+      {/* Achievement Info */}
+      <View style={styles.achievementInfo}>
+        <Text
+          style={[
+            styles.title,
+            isCompleted ? styles.completedTitle : styles.lockedTitle,
+          ]}
+        >
+          {achievement.title}
+        </Text>
 
-            {/* XP Reward */}
-            <View style={styles.xpContainer}>
-              <Trophy size={12} color={colors.primary} />
-              <Text
-                style={[
-                  styles.xpText,
-                  {
-                    fontSize: fontSizes.xp,
-                    color: colors.primary,
-                  },
-                ]}
-              >
-                +{achievement.xpReward} XP
-              </Text>
-            </View>
-          </View>
+        <Text
+          style={[
+            styles.description,
+            isCompleted
+              ? styles.completedDescription
+              : styles.lockedDescription,
+          ]}
+        >
+          {achievement.description}
+        </Text>
 
-          {/* Progress Bar */}
-          {showProgress && achievement.maxProgress && !achievement.unlocked && (
-            <View style={styles.progressContainer}>
-              <View style={styles.progressBar}>
-                <View
-                  style={[
-                    styles.progressFill,
-                    {
-                      width: `${progressPercentage}%`,
-                      backgroundColor: colors.primary,
-                    },
-                  ]}
-                />
-              </View>
+        {/* Progress Section */}
+        {showProgress && !isCompleted && (
+          <View style={styles.progressSection}>
+            <View style={styles.progressHeader}>
               <Text style={styles.progressText}>
-                {achievement.progress || 0}/{achievement.maxProgress}
+                {achievement.progress} / {achievement.target}
+              </Text>
+              <Text style={styles.progressPercentage}>
+                {Math.round(progressPercentage)}%
               </Text>
             </View>
-          )}
 
-          {/* Unlocked Date */}
-          {achievement.unlocked && achievement.unlockedDate && size === 'large' && (
-            <Text style={styles.unlockedDate}>
-              Unlocked {achievement.unlockedDate.toLocaleDateString()}
+            <ProgressRing
+              progress={progressPercentage / 100}
+              size="lg"
+              strokeWidth={3}
+              colors={[colors.primary, colors.secondary]}
+              backgroundColor="rgba(107, 114, 128, 0.2)"
+              animated={animated}
+            />
+          </View>
+        )}
+
+        {/* XP Reward */}
+        <View style={styles.rewardSection}>
+          <Text
+            style={[
+              styles.xpReward,
+              { color: isCompleted ? colors.primary : '#6B7280' },
+            ]}
+          >
+            +{achievement.xpReward} XP
+          </Text>
+
+          {isCompleted && achievement.dateUnlocked && (
+            <Text style={styles.dateUnlocked}>
+              Unlocked {new Date(achievement.dateUnlocked).toLocaleDateString()}
             </Text>
           )}
-        </LinearGradient>
-      </Animated.View>
-    </TouchableOpacity>
+        </View>
+      </View>
+
+      {/* Completion Celebration */}
+      <CelebrationBurst
+        trigger={wasJustUnlocked && showSparkles}
+        onComplete={() => setShowSparkles(false)}
+        sparkleCount={achievement.rarity === 'legendary' ? 20 : 12}
+        colors={colors.sparkles}
+      />
+    </View>
   );
-}
+
+  const WrapperCard = (
+    <BoltCard
+      variant={isCompleted ? 'energy' : 'glass'}
+      onPress={onPress}
+      style={[
+        styles.achievementCard,
+        isCompleted && styles.completedCard,
+        {
+          borderColor: isCompleted
+            ? colors.primary
+            : 'rgba(107, 114, 128, 0.3)',
+        },
+      ]}
+      animated={animated}
+      pulseOnHover={achievement.rarity === 'legendary' && isCompleted}
+      morphOnPress={true}
+    >
+      {CardContent}
+    </BoltCard>
+  );
+
+  // Add pulse effect for epic and legendary achievements
+  if (
+    (achievement.rarity === 'epic' || achievement.rarity === 'legendary') &&
+    isCompleted &&
+    animated
+  ) {
+    return (
+      <Pulse enabled={true} scale={1.02} duration={3000}>
+        {WrapperCard}
+      </Pulse>
+    );
+  }
+
+  return WrapperCard;
+};
 
 const styles = StyleSheet.create({
-  container: {
-    margin: 8,
+  achievementCard: {
+    marginVertical: 8,
   },
-  cardWrapper: {
-    flex: 1,
+  completedCard: {
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  cardContent: {
     position: 'relative',
   },
-  glowEffect: {
+  rarityBadge: {
     position: 'absolute',
-    top: -2,
-    left: -2,
-    right: -2,
-    bottom: -2,
-    borderRadius: 18,
-    backgroundColor: 'transparent',
+    top: -8,
+    right: -8,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    zIndex: 10,
   },
-  gradient: {
-    flex: 1,
-    borderRadius: 16,
-    padding: 12,
-    borderWidth: 1,
-    position: 'relative',
-  },
-  rarityBorder: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 3,
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
+  rarityText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: 'bold',
   },
   iconContainer: {
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 12,
+    position: 'relative',
   },
-  iconEmoji: {
-    lineHeight: 32,
-  },
-  infoContainer: {
-    flex: 1,
+  iconBackground: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
     alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+  },
+  iconText: {
+    fontSize: 24,
+  },
+  achievementInfo: {
+    flex: 1,
   },
   title: {
-    fontWeight: '600',
-    textAlign: 'center',
+    fontSize: 16,
+    fontWeight: 'bold',
     marginBottom: 4,
+    textAlign: 'center',
+  },
+  completedTitle: {
+    color: '#FFFFFF',
+  },
+  lockedTitle: {
+    color: '#9CA3AF',
   },
   description: {
+    fontSize: 14,
     textAlign: 'center',
-    lineHeight: 16,
-    marginBottom: 8,
+    marginBottom: 12,
+    lineHeight: 20,
   },
-  xpContainer: {
+  completedDescription: {
+    color: '#E5E7EB',
+  },
+  lockedDescription: {
+    color: '#6B7280',
+  },
+  progressSection: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 'auto',
+    justifyContent: 'space-between',
+    marginBottom: 12,
   },
-  xpText: {
-    fontWeight: '600',
-    marginLeft: 4,
-  },
-  progressContainer: {
-    marginTop: 8,
-    alignItems: 'center',
-  },
-  progressBar: {
-    width: '100%',
-    height: 4,
-    backgroundColor: '#1A1A2E',
-    borderRadius: 2,
-    overflow: 'hidden',
-    marginBottom: 4,
-  },
-  progressFill: {
-    height: '100%',
-    borderRadius: 2,
+  progressHeader: {
+    flex: 1,
   },
   progressText: {
-    fontSize: 10,
-    color: '#64748B',
+    color: '#D1D5DB',
+    fontSize: 12,
     fontWeight: '500',
   },
-  unlockedDate: {
+  progressPercentage: {
+    color: '#9CA3AF',
     fontSize: 10,
-    color: '#64748B',
-    textAlign: 'center',
+    marginTop: 2,
+  },
+  rewardSection: {
+    alignItems: 'center',
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(107, 114, 128, 0.2)',
+    paddingTop: 12,
+  },
+  xpReward: {
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  dateUnlocked: {
+    color: '#6B7280',
+    fontSize: 11,
     marginTop: 4,
   },
 });
+
+export default AchievementCard;

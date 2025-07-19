@@ -165,7 +165,7 @@ export default function LevelUpCelebration({
             <LightningAvatar
               level="bolt"
               xp={0}
-              maxXP={100}
+              maxXp={100}
               color="purple"
               size="large"
               showStats={false}

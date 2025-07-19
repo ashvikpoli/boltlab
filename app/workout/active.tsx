@@ -36,6 +36,9 @@ import {
 } from '@/hooks/useSupabaseGamification';
 import { useMuscleFatigue } from '@/hooks/useMuscleFatigue';
 import { useAuth } from '@/hooks/useAuth';
+import { BoltCard } from '@/components/design-system/BoltCard';
+import { LightningButton } from '@/components/design-system/LightningButton';
+import { FloatingActionButton } from '@/components/design-system/FloatingActionButton';
 
 // Extended Exercise interface for AI-generated workouts
 interface GeneratedExercise extends Exercise {
@@ -389,19 +392,25 @@ export default function ActiveWorkoutScreen() {
       >
         {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity
-            style={styles.backButton}
+          <LightningButton
+            variant="ghost"
+            size="small"
             onPress={() => router.back()}
-          >
-            <ArrowLeft size={24} color="#FFFFFF" />
-          </TouchableOpacity>
+            icon={<ArrowLeft size={24} color="#FFFFFF" />}
+            style={styles.backButton}
+          />
           <View style={styles.headerCenter}>
             <Text style={styles.headerTitle}>Active Workout</Text>
             <Text style={styles.headerSubtitle}>{getWorkoutDuration()}</Text>
           </View>
-          <TouchableOpacity style={styles.endButton} onPress={handleEndWorkout}>
-            <Text style={styles.endButtonText}>End</Text>
-          </TouchableOpacity>
+          <LightningButton
+            variant="danger"
+            size="small"
+            onPress={handleEndWorkout}
+            style={styles.endButton}
+          >
+            End
+          </LightningButton>
         </View>
 
         <ScrollView
@@ -412,86 +421,78 @@ export default function ActiveWorkoutScreen() {
           {currentExercise && (
             <View style={styles.currentExerciseSection}>
               <Text style={styles.sectionTitle}>Current Exercise</Text>
-              <View style={styles.exerciseCard}>
-                <LinearGradient
-                  colors={['#1A1A2E', '#0F0F23']}
-                  style={styles.exerciseGradient}
-                >
-                  {/* Exercise Image */}
-                  {currentExercise.images?.demonstration && (
-                    <View style={styles.exerciseImageContainer}>
-                      <Image
-                        source={{ uri: currentExercise.images.demonstration }}
-                        style={styles.exerciseImage}
-                        resizeMode="cover"
-                        onError={() =>
-                          console.log('Failed to load exercise image')
-                        }
-                      />
-                      {/* Difficulty indicator overlay */}
-                      {currentExercise.difficulty && (
-                        <View
-                          style={[
-                            styles.difficultyBadge,
-                            {
-                              backgroundColor:
-                                currentExercise.difficulty === 'beginner'
-                                  ? '#10B981'
-                                  : currentExercise.difficulty ===
-                                    'intermediate'
-                                  ? '#F59E0B'
-                                  : '#EF4444',
-                            },
-                          ]}
-                        >
-                          <Text style={styles.difficultyText}>
-                            {currentExercise.difficulty
-                              .charAt(0)
-                              .toUpperCase() +
-                              currentExercise.difficulty.slice(1)}
-                          </Text>
-                        </View>
-                      )}
-                    </View>
-                  )}
-
-                  <View style={styles.exerciseHeader}>
-                    <Text style={styles.exerciseName}>
-                      {currentExercise.name}
-                    </Text>
-                    <Text style={styles.exerciseDetails}>
-                      {currentExercise.muscleGroup} •{' '}
-                      {currentExercise.equipment}
-                    </Text>
-                    {/* Target muscles */}
-                    {currentExercise.targetMuscles &&
-                      currentExercise.targetMuscles.length > 0 && (
-                        <Text style={styles.targetMuscles}>
-                          Targets:{' '}
-                          {currentExercise.targetMuscles.slice(0, 2).join(', ')}
-                          {currentExercise.targetMuscles.length > 2 &&
-                            ` +${
-                              currentExercise.targetMuscles.length - 2
-                            } more`}
-                        </Text>
-                      )}
-                  </View>
-                  <Text style={styles.exerciseDescription}>
-                    {currentExercise.description}
-                  </Text>
-
-                  {/* Quick instruction hint */}
-                  {currentExercise.instructions?.setup &&
-                    currentExercise.instructions.setup.length > 0 && (
-                      <View style={styles.quickTipContainer}>
-                        <Text style={styles.quickTipLabel}>Quick Setup:</Text>
-                        <Text style={styles.quickTipText}>
-                          {currentExercise.instructions.setup[0]}
+              <BoltCard
+                variant="glass"
+                style={[styles.exerciseCard, styles.exerciseGradient]}
+              >
+                {/* Exercise Image */}
+                {currentExercise.images?.demonstration && (
+                  <View style={styles.exerciseImageContainer}>
+                    <Image
+                      source={{ uri: currentExercise.images.demonstration }}
+                      style={styles.exerciseImage}
+                      resizeMode="cover"
+                      onError={() =>
+                        console.log('Failed to load exercise image')
+                      }
+                    />
+                    {/* Difficulty indicator overlay */}
+                    {currentExercise.difficulty && (
+                      <View
+                        style={[
+                          styles.difficultyBadge,
+                          {
+                            backgroundColor:
+                              currentExercise.difficulty === 'beginner'
+                                ? '#10B981'
+                                : currentExercise.difficulty === 'intermediate'
+                                ? '#F59E0B'
+                                : '#EF4444',
+                          },
+                        ]}
+                      >
+                        <Text style={styles.difficultyText}>
+                          {currentExercise.difficulty.charAt(0).toUpperCase() +
+                            currentExercise.difficulty.slice(1)}
                         </Text>
                       </View>
                     )}
-                </LinearGradient>
-              </View>
+                  </View>
+                )}
+
+                <View style={styles.exerciseHeader}>
+                  <Text style={styles.exerciseName}>
+                    {currentExercise.name}
+                  </Text>
+                  <Text style={styles.exerciseDetails}>
+                    {currentExercise.muscleGroup} • {currentExercise.equipment}
+                  </Text>
+                  {/* Target muscles */}
+                  {currentExercise.targetMuscles &&
+                    currentExercise.targetMuscles.length > 0 && (
+                      <Text style={styles.targetMuscles}>
+                        Targets:{' '}
+                        {currentExercise.targetMuscles.slice(0, 2).join(', ')}
+                        {currentExercise.targetMuscles.length > 2 &&
+                          ` +${currentExercise.targetMuscles.length - 2} more`}
+                      </Text>
+                    )}
+                </View>
+                <Text style={styles.exerciseDescription}>
+                  {currentExercise.description}
+                </Text>
+
+                {/* Quick instruction hint */}
+                {currentExercise.instructions?.setup &&
+                  currentExercise.instructions.setup.length > 0 && (
+                    <View style={styles.quickTipContainer}>
+                      <Text style={styles.quickTipLabel}>Quick Setup:</Text>
+                      <Text style={styles.quickTipText}>
+                        {currentExercise.instructions.setup[0]}
+                      </Text>
+                    </View>
+                  )}
+              </BoltCard>
 
               {/* Set Tracker */}
               <SetTracker
@@ -540,55 +541,58 @@ export default function ActiveWorkoutScreen() {
                   );
 
                   return (
-                    <View key={exercise.id} style={styles.nextExerciseCard}>
-                      <LinearGradient
-                        colors={['#1A1A2E', '#0F0F23']}
-                        style={styles.nextExerciseGradient}
-                      >
-                        <View style={styles.nextExerciseHeader}>
-                          <View style={styles.nextExerciseNumber}>
-                            <Text style={styles.nextExerciseNumberText}>
-                              {actualIndex + 1}
-                            </Text>
-                          </View>
-                          <View style={styles.nextExerciseInfo}>
-                            <Text style={styles.nextExerciseName}>
-                              {exercise.name}
-                            </Text>
-                            <Text style={styles.nextExerciseDetails}>
-                              {(exercise as GeneratedExercise).generatedSets ||
-                                3}{' '}
-                              sets •{' '}
-                              {(exercise as GeneratedExercise).generatedReps ||
-                                10}{' '}
-                              reps
-                              {(exercise as GeneratedExercise)
-                                .generatedWeight &&
-                                ` • ${
-                                  (exercise as GeneratedExercise)
-                                    .generatedWeight
-                                } lb`}
-                            </Text>
-                            <Text style={styles.nextExerciseMuscle}>
-                              {exercise.muscleGroup}
-                            </Text>
-                          </View>
-                          <View style={styles.nextExerciseStatus}>
-                            {isExerciseCompleted(
-                              exercise as GeneratedExercise
-                            ) ? (
-                              <View style={styles.completedBadge}>
-                                <Text style={styles.completedBadgeText}>✓</Text>
-                              </View>
-                            ) : (
-                              <Text style={styles.nextExerciseProgress}>
-                                {completedSets}/{recommendedSets}
-                              </Text>
-                            )}
-                          </View>
+                    <BoltCard
+                      key={exercise.id}
+                      variant={
+                        isExerciseCompleted(exercise as GeneratedExercise)
+                          ? 'energy'
+                          : 'glass'
+                      }
+                      style={[
+                        styles.nextExerciseCard,
+                        styles.nextExerciseGradient,
+                      ]}
+                    >
+                      <View style={styles.nextExerciseHeader}>
+                        <View style={styles.nextExerciseNumber}>
+                          <Text style={styles.nextExerciseNumberText}>
+                            {actualIndex + 1}
+                          </Text>
                         </View>
-                      </LinearGradient>
-                    </View>
+                        <View style={styles.nextExerciseInfo}>
+                          <Text style={styles.nextExerciseName}>
+                            {exercise.name}
+                          </Text>
+                          <Text style={styles.nextExerciseDetails}>
+                            {(exercise as GeneratedExercise).generatedSets || 3}{' '}
+                            sets •{' '}
+                            {(exercise as GeneratedExercise).generatedReps ||
+                              10}{' '}
+                            reps
+                            {(exercise as GeneratedExercise).generatedWeight &&
+                              ` • ${
+                                (exercise as GeneratedExercise).generatedWeight
+                              } lb`}
+                          </Text>
+                          <Text style={styles.nextExerciseMuscle}>
+                            {exercise.muscleGroup}
+                          </Text>
+                        </View>
+                        <View style={styles.nextExerciseStatus}>
+                          {isExerciseCompleted(
+                            exercise as GeneratedExercise
+                          ) ? (
+                            <View style={styles.completedBadge}>
+                              <Text style={styles.completedBadgeText}>✓</Text>
+                            </View>
+                          ) : (
+                            <Text style={styles.nextExerciseProgress}>
+                              {completedSets}/{recommendedSets}
+                            </Text>
+                          )}
+                        </View>
+                      </View>
+                    </BoltCard>
                   );
                 })}
 
@@ -708,67 +712,62 @@ export default function ActiveWorkoutScreen() {
           {/* Workout Progress */}
           <View style={styles.progressSection}>
             <Text style={styles.sectionTitle}>Workout Progress</Text>
-            <View style={styles.progressCard}>
-              <LinearGradient
-                colors={['#1A1A2E', '#0F0F23']}
-                style={styles.progressGradient}
-              >
-                <View style={styles.progressStats}>
-                  <View style={styles.progressStat}>
-                    <Clock size={20} color="#3B82F6" />
-                    <Text style={styles.progressValue}>
-                      {getWorkoutDuration()}
-                    </Text>
-                    <Text style={styles.progressLabel}>Duration</Text>
-                  </View>
-                  <View style={styles.progressStat}>
-                    <Target size={20} color="#10B981" />
-                    <Text style={styles.progressValue}>
-                      {activeWorkout.sets.length}
-                    </Text>
-                    <Text style={styles.progressLabel}>Sets</Text>
-                  </View>
-                  <View style={styles.progressStat}>
-                    <Zap size={20} color="#F59E0B" />
-                    <Text style={styles.progressValue}>
-                      {activeWorkout.exercises.length}
-                    </Text>
-                    <Text style={styles.progressLabel}>Exercises</Text>
-                  </View>
+            <BoltCard
+              variant="glass"
+              style={[styles.progressCard, styles.progressGradient]}
+            >
+              <View style={styles.progressStats}>
+                <View style={styles.progressStat}>
+                  <Clock size={20} color="#3B82F6" />
+                  <Text style={styles.progressValue}>
+                    {getWorkoutDuration()}
+                  </Text>
+                  <Text style={styles.progressLabel}>Duration</Text>
                 </View>
-              </LinearGradient>
-            </View>
+                <View style={styles.progressStat}>
+                  <Target size={20} color="#10B981" />
+                  <Text style={styles.progressValue}>
+                    {activeWorkout.sets.length}
+                  </Text>
+                  <Text style={styles.progressLabel}>Sets</Text>
+                </View>
+                <View style={styles.progressStat}>
+                  <Zap size={20} color="#F59E0B" />
+                  <Text style={styles.progressValue}>
+                    {activeWorkout.exercises.length}
+                  </Text>
+                  <Text style={styles.progressLabel}>Exercises</Text>
+                </View>
+              </View>
+            </BoltCard>
           </View>
 
           {/* Finish Workout Button */}
           <View style={styles.finishSection}>
-            <TouchableOpacity
-              style={styles.finishButton}
+            <LightningButton
+              variant="primary"
+              size="large"
               onPress={finishWorkout}
+              icon={<Zap size={20} color="#FFFFFF" />}
+              style={styles.finishButton}
             >
-              <LinearGradient
-                colors={['#6B46C1', '#8B5CF6']}
-                style={styles.finishButtonGradient}
-              >
-                <Zap size={20} color="#FFFFFF" />
-                <Text style={styles.finishButtonText}>Finish Workout</Text>
-              </LinearGradient>
-            </TouchableOpacity>
+              Finish Workout
+            </LightningButton>
           </View>
         </ScrollView>
 
         {/* Chat with Bolt Button */}
-        <TouchableOpacity
-          style={styles.chatButton}
+        <FloatingActionButton
           onPress={() => setShowBoltChat(true)}
+          variant="primary"
+          size="medium"
+          style={styles.chatButton}
+          pulse={true}
+          float={true}
+          ripple={true}
         >
-          <LinearGradient
-            colors={['#6B46C1', '#8B5CF6']}
-            style={styles.chatButtonGradient}
-          >
-            <MessageCircle size={20} color="#FFFFFF" />
-          </LinearGradient>
-        </TouchableOpacity>
+          <MessageCircle size={24} color="#FFFFFF" />
+        </FloatingActionButton>
 
         {/* Bolt Chat Modal */}
         <BoltChat

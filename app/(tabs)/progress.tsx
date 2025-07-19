@@ -246,7 +246,7 @@ export default function ProgressScreen() {
                 currentXP={levelProgress.currentXP}
                 maxXP={levelProgress.maxXP}
                 level={levelProgress.level}
-                size="large"
+                size="xl"
                 animated={true}
               />
             </LinearGradient>

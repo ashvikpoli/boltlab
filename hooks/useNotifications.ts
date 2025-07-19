@@ -9,6 +9,8 @@ Notifications.setNotificationHandler({
     shouldShowAlert: true,
     shouldPlaySound: true,
     shouldSetBadge: false,
+    shouldShowBanner: true,
+    shouldShowList: true,
   }),
 });
 
@@ -77,6 +79,7 @@ export function useNotifications() {
         data: { type: 'rest-ending' },
       },
       trigger: {
+        type: 'time',
         seconds: triggerTime,
       },
     });
@@ -94,6 +97,7 @@ export function useNotifications() {
         data: { type: 'rest-complete' },
       },
       trigger: {
+        type: 'time',
         seconds: restSeconds,
       },
     });
@@ -130,7 +134,10 @@ export function useNotifications() {
           sound: settings.soundEffects ? 'default' : false,
           data: { type: 'streak-reminder' },
         },
-        trigger: tomorrow,
+        trigger: {
+          type: 'dateTime',
+          date: tomorrow,
+        },
       });
     } else if (daysSinceWorkout === 1) {
       // One rest day, remind them they can take one more but should workout tomorrow
@@ -146,7 +153,10 @@ export function useNotifications() {
           sound: settings.soundEffects ? 'default' : false,
           data: { type: 'streak-urgent' },
         },
-        trigger: tomorrow,
+        trigger: {
+          type: 'dateTime',
+          date: tomorrow,
+        },
       });
     }
   };
@@ -167,6 +177,7 @@ export function useNotifications() {
         data: { type: 'daily-reminder' },
       },
       trigger: {
+        type: 'calendarRepeat',
         hour: 18,
         minute: 0,
         repeats: true,
